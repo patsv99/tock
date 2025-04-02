@@ -92,6 +92,7 @@ pub mod st77xx;
 pub mod storage_permissions;
 pub mod temperature;
 pub mod temperature_rp2040;
+pub mod temperature_rp2350;
 pub mod temperature_stm;
 pub mod test;
 pub mod text_screen;

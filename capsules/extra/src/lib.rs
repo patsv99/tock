@@ -103,6 +103,7 @@ pub mod st77xx;
 pub mod symmetric_encryption;
 pub mod temperature;
 pub mod temperature_rp2040;
+pub mod temperature_rp2350;
 pub mod temperature_stm;
 pub mod text_screen;
 pub mod tickv;
