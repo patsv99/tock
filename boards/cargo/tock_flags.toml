@@ -34,6 +34,7 @@ rustflags = [
   "-C", "lto",
   # Have rustc generate stack sizes for analyzing the size of stack frames.
   "-Z", "emit-stack-sizes",
+  "-C","link-arg=-Map=kalle.map"
 ]
 rustdocflags = [
   # Error if there are warnings. This allows CI to fail on warnings.

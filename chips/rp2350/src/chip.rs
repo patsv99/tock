@@ -16,7 +16,7 @@ use crate::interrupts;
 use crate::pio::Pio;
 use crate::pwm;
 use crate::resets::Resets;
-use crate::rtc;
+// use crate::rtc;
 use crate::spi;
 use crate::sysinfo;
 use crate::timer::RPTimer;
@@ -137,7 +137,7 @@ pub struct Rp2350DefaultPeripherals<'a> {
     pub usb: usb::UsbCtrl<'a>,
     pub watchdog: Watchdog<'a>,
     pub xosc: Xosc,
-    pub rtc: rtc::Rtc<'a>,
+//    pub rtc: rtc::Rtc<'a>,
 }
 
 impl Rp2350DefaultPeripherals<'_> {
@@ -160,7 +160,7 @@ impl Rp2350DefaultPeripherals<'_> {
             usb: usb::UsbCtrl::new(),
             watchdog: Watchdog::new(),
             xosc: Xosc::new(),
-            rtc: rtc::Rtc::new(),
+//            rtc: rtc::Rtc::new(),
         }
     }
 
@@ -171,10 +171,10 @@ impl Rp2350DefaultPeripherals<'_> {
         self.uart0.set_clocks(&self.clocks);
         kernel::deferred_call::DeferredCallClient::register(&self.uart0);
         kernel::deferred_call::DeferredCallClient::register(&self.uart1);
-        kernel::deferred_call::DeferredCallClient::register(&self.rtc);
+//        kernel::deferred_call::DeferredCallClient::register(&self.rtc);
         self.i2c0.resolve_dependencies(&self.clocks, &self.resets);
         self.usb.set_gpio(self.pins.get_pin(RPGpio::GPIO15));
-        self.rtc.set_clocks(&self.clocks);
+//        self.rtc.set_clocks(&self.clocks);
     }
 }
 

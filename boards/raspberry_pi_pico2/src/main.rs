@@ -170,14 +170,22 @@ core::arch::global_asm!(
     "
     .section .jump_to_bootloader, \"ax\"
     .global jump_to_bootloader
+    .extern initialize_ram_jump_to_main
     .thumb_func
   jump_to_bootloader:
+BKPT #102  
     movs r0, #0
-    ldr r1, =(0xe0000000 + 0x0000ed08)
-    str r0, [r1]
-    ldmia r0!, {{r1, r2}}
-    msr msp, r1
-    bx r2
+#    ldr r1, =(0xe0000000 + 0x0000ed08)
+#    str r0, [r1]
+#    ldmia r0!, {{r1, r2}}
+#    msr msp, r1
+  ldr r0,=  _estack
+   msr MSP,r0
+   ldr r0,= _sstack
+   msr MSPLIM,r0
+
+
+bl initialize_ram_jump_to_main
     "
 );
 
@@ -608,6 +616,8 @@ pub unsafe fn start() -> (
 
 /// Main function called after RAM initialized.
 #[no_mangle]
+#[inline(never)]
+
 pub unsafe fn main() {
     let main_loop_capability = create_capability!(capabilities::MainLoopCapability);
 

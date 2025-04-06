@@ -16,7 +16,7 @@ pub mod pio_pwm;
 pub mod pio_spi;
 pub mod pwm;
 pub mod resets;
-pub mod rtc;
+
 pub mod spi;
 pub mod sysinfo;
 pub mod test;

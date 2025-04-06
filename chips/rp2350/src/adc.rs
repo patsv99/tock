@@ -122,7 +122,7 @@ INTS [
 ]
 ];
 const ADC_BASE: StaticRef<AdcRegisters> =
-    unsafe { StaticRef::new(0x4004C000 as *const AdcRegisters) };
+    unsafe { StaticRef::new(0x400a0000 as *const AdcRegisters) };
 
 #[allow(dead_code)]
 #[repr(u32)]

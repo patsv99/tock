@@ -141,6 +141,8 @@ extern "C" {
     pub fn initialize_ram_jump_to_main();
 }
 
+#[unsafe(no_mangle)]
+#[inline(never)]
 #[cfg(any(doc, all(target_arch = "arm", target_os = "none")))]
 core::arch::global_asm!(
 "
@@ -148,6 +150,7 @@ core::arch::global_asm!(
     .global initialize_ram_jump_to_main
     .thumb_func
   initialize_ram_jump_to_main:
+BKPT #103
     // Start by initializing .bss memory. The Tock linker script defines
     // `_szero` and `_ezero` to mark the .bss segment.
     ldr r0, ={sbss}     // r0 = first address of .bss
@@ -172,7 +175,7 @@ core::arch::global_asm!(
     ldr r0, ={sdata}    // r0 = first address of data section in RAM
     ldr r1, ={edata}    // r1 = first address after data section in RAM
     ldr r2, ={etext}    // r2 = address of stored data initial values
-
+BKPT #105
   200: // data_init_loop
     cmp r1, r0          // We increment r0. Check if we have reached the end
                         // of the data section, and if so we are done.
@@ -187,6 +190,7 @@ core::arch::global_asm!(
 
     // Now that memory has been initialized, we can jump to main() where the
     // board initialization takes place and Rust code starts.
+BKPT #104
     bl main
     ",
     sbss = sym _szero,
