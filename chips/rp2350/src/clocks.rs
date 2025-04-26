@@ -3,9 +3,15 @@
 // Copyright Tock Contributors 2022.
 
 use core::cell::Cell;
+use kernel::static_init;
 use kernel::utilities::registers::interfaces::{ReadWriteable, Readable, Writeable};
 use kernel::utilities::registers::{register_bitfields, register_structs, ReadOnly, ReadWrite};
 use kernel::utilities::StaticRef;
+
+use CS::{LOCK, REFDIV};
+
+use crate::chip::Rp2350DefaultPeripherals;
+use crate::resets::Peripheral;
 
 /* Clocks base */
 register_structs! {
@@ -78,7 +84,7 @@ register_structs! {
         (0x09c => fc0_interval: ReadWrite<u32>),
         /// Clock sent to frequency counter, set to 0 when not required
         /// Writing to this register initiates the frequency count
-        (0x0a0 => fc0_src: ReadWrite<u32>),
+        (0x0a0 => fc0_src: ReadWrite<u32,FC0_SRC::Register>),
         /// Frequency counter status
         (0x0a4 => fc0_status: ReadWrite<u32, FC0_STATUS::Register>),
         /// Result of frequency measurement, only valid when status_done=1
@@ -90,11 +96,11 @@ register_structs! {
         /// enable clock in sleep mode
         (0x0b4 => sleep_en0: ReadWrite<u32, SLEEP_EN0::Register>),
         /// enable clock in sleep mode
-        (0x0b8 => sleep_en1: ReadWrite<u32, SLEEP_EN1::Register>),
+        (0x0b8 => sleep_en1: ReadWrite<u32, SLEEP_EN0::Register>),
         /// indicates the state of the clock enable
         (0x0Bc => enabled0: ReadWrite<u32, ENABLED0::Register>),
         /// indicates the state of the clock enable
-        (0x0c0 => enabled1: ReadWrite<u32, ENABLED1::Register>),
+        (0x0c0 => enabled1: ReadWrite<u32, ENABLED0::Register>),
         /// Raw Interrupts
         (0x0c4 => intr: ReadWrite<u32>),
         /// Interrupt Enable
@@ -104,521 +110,31 @@ register_structs! {
         /// Interrupt status after masking & forcing
         (0x0d0 => ints: ReadWrite<u32>),
         (0x0d4 => @END),
-    }
-}
-
-register_structs! {
-    PllRegisters {
+    },
+        PllRegisters {
         /// Control and Status
         /// GENERAL CONSTRAINTS:
         /// Reference clock frequency min=5MHz, max=800MHz
         /// Feedback divider min=16, max=320
         /// VCO frequency min=400MHz, max=1600MHz
-        (0x000 => cs: ReadWrite<u32, PLL_CS::Register>),
+        (0x000 => cs: ReadWrite<u32, CS::Register>),
         /// Controls the PLL power modes.
-        (0x004 => pwr: ReadWrite<u32, PLL_PWR::Register>),
+        (0x004 => pwr: ReadWrite<u32, PWR::Register>),
         /// Feedback divisor
         /// (note: this PLL does not support fractional division)
-        (0x008 => fbdiv_int: ReadWrite<u32, PLL_FBDIV_INT::Register>),
+        (0x008 => fbdiv_int: ReadWrite<u32, FBDIV_INT::Register>),
         /// Controls the PLL post dividers for the primary output
         /// (note: this PLL does not have a secondary output)
         /// the primary output is driven from VCO divided by postdiv1*postdiv2
-        (0x00C => prim: ReadWrite<u32, PLL_PRIM::Register>),
+        (0x00C => prim: ReadWrite<u32, PRIM::Register>),
         (0x010 => intr: ReadWrite<u32, PLL_INTR::Register>),
         (0x014 => inte: ReadWrite<u32, PLL_INTE::Register>),
         (0x018 => intf: ReadWrite<u32, PLL_INTF::Register>),
         (0x01c => ints: ReadWrite<u32, PLL_INTS::Register>),
         (0x020 => @END),
     }
+
 }
-
-register_structs! {
-    XOSCRegisters {
-(0x000 => ctrl: ReadWrite<u32,XOSC_CTRL::Register>),
-(0x004 => status: ReadWrite<u32,XOSC_STATUS::Register>),
-(0x008 => dormant: ReadWrite<u32,XOSC_DORMANT::Register>),
-(0x00c => startup: ReadWrite<u32,XOSC_STARTUP::Register>),
-(0x010 => count: ReadWrite<u32,XOSC_COUNT::Register>),
-(0x014 => @END),
-}
-}
-
-register_structs! {
-ROSCRegisters {
-    (0x000 => ctrl: ReadWrite<u32,ROSC_CTRL::Register>),
-    (0x004 => freqa: ReadWrite<u32,ROSC_FREQA::Register>),
-    (0x008 => freqb: ReadWrite<u32,ROSC_FREQB::Register>),
-    (0x00c => random: ReadWrite<u32,ROSC_RANDOM::Register>),
-    (0x010 => dormant: ReadWrite<u32,ROSC_DORMANT::Register>),
-    (0x014 => div: ReadWrite<u32,ROSC_DIV::Register>),
-    (0x018 => phase: ReadWrite<u32,ROSC_PHASE::Register>),
-    (0x01c => status: ReadWrite<u32,ROSC_STATUS::Register>),
-    (0x020 => randombit: ReadWrite<u32,ROSC_RANDOMBIT::Register>),
-    (0x024 => count: ReadWrite<u32,ROSC_COUNT::Register>),
-    (0x28 => @END),
-}
-}
-
-register_structs! {
-POWMANRegisters {
-    (0x000 => badpasswd: ReadWrite<u32,POWMAN_BADPASSWD::Register>),
-    (0x004 => vreg_ctrl: ReadWrite<u32,POWMAN_VREG_CTRL::Register>),
-    (0x008 => vreg_sts: ReadWrite<u32,POWMAN_VREG_STS::Register>),
-    (0x00c => vreg: ReadWrite<u32,POWMAN_VREG::Register>),
-    (0x010 => vreg_lp_entry: ReadWrite<u32,POWMAN_VREG_LP_ENTRY::Register>),
-    (0x014 => vreg_lp_exit: ReadWrite<u32,POWMAN_VREG_LP_EXIT::Register>),
-    (0x018 => bod_ctrl: ReadWrite<u32,POWMAN_BOD_CTRL::Register>),
-    (0x01c => bod: ReadWrite<u32,POWMAN_BOD::Register>),
-    (0x020 => bod_lp_entry: ReadWrite<u32,POWMAN_BOD_LP_ENTRY::Register>),
-    (0x024 => bod_lp_exit: ReadWrite<u32,POWMAN_BOD_LP_EXIT::Register>),
-    (0x028 =>lposc: ReadWrite<u32,POWMAN_LPOSC::Register>),
-    (0x02c => chip_reset: ReadWrite<u32,POWMAN_CHIPRESET::Register>),
-    (0x030 => wdsel: ReadWrite<u32,POWMAN_WDSEL::Register>),
-    (0x034 => seq_cfg: ReadWrite<u32,POWMAN_SEQ_CFG::Register>),
-    (0x038 => state: ReadWrite<u32,POWMAN_STATE::Register>),
-    (0x03c => pow_fastdiv: ReadWrite<u32,POWMAN_POW_FASTDIV::Register>),
-    (0x040 => pow_delay: ReadWrite<u32,POWMAN_POW_DELAY::Register>),
-    (0x044 => ext_ctrl0: ReadWrite<u32,POWMAN_EXT_CTRL0::Register>),
-    (0x048 => ext_ctrl1: ReadWrite<u32,POWMAN_EXT_CTRL1::Register>),
-    (0x04c => ext_time_ref: ReadWrite<u32,POWMAN_EXT_TIME_REF::Register>),
-    (0x050 => lposc_freq_khz_int: ReadWrite<u32,POWMAN_LPOSC_FREQ_KHZ_INT::Register>),
-    (0x054 => lposc_freq_khz_frac: ReadWrite<u32,POWMAN_LPOSC_FREQ_KHZ_FRAC::Register>),
-    (0x058 => xosc_freq_khz_int: ReadWrite<u32,POWMAN_XOSC_FREQ_KHZ_INT::Register>),
-    (0x05c => xosc_freq_khz_frac: ReadWrite<u32,POWMAN_XOSC_FREQ_KHZ_FRAC::Register>),
-    (0x060 => set_time_63to48: ReadWrite<u32,POWMAN_SET_TIME_63TO48::Register>),
-    (0x064 => set_time_47to32: ReadWrite<u32,POWMAN_SET_TIME_47TO32::Register>),
-    (0x068 => set_time_31to16: ReadWrite<u32,POWMAN_SET_TIME_31TO16::Register>),
-    (0x06c => set_time_15to0: ReadWrite<u32,POWMAN_SET_TIME_15TO0::Register>),
-    (0x070 => read_time_upper: ReadWrite<u32,POWMAN_READ_TIME_UPPER::Register>),
-    (0x074 => read_time_lower: ReadWrite<u32,POWMAN_READ_TIME_LOWER::Register>),
-    (0x078 => alarm_time_63to48: ReadWrite<u32,POWMAN_ALARM_TIME_63TO48::Register>),
-    (0x07c => alarm_time_47to32: ReadWrite<u32,POWMAN_ALARM_TIME_47TO32::Register>),
-    (0x080 => alarm_time_31to16: ReadWrite<u32,POWMAN_ALARM_TIME_31TO16::Register>),
-    (0x084 => alarm_time_15to0: ReadWrite<u32,POWMAN_ALARM_TIME_15TO0::Register>),
-    (0x088 => timer: ReadWrite<u32,POWMAN_TIMER::Register>),
-    (0x08c => pwrup0: ReadWrite<u32,POWMAN_PWRUP0::Register>),
-    (0x090 => pwrup1: ReadWrite<u32,POWMAN_PWRUP1::Register>),
-    (0x094 => pwrup2: ReadWrite<u32,POWMAN_PWRUP2::Register>),
-    (0x098 => pwrup3: ReadWrite<u32,POWMAN_PWRUP3::Register>),
-    (0x09c => current_pwrup_req: ReadWrite<u32,POWMAN_CURRENT_PWRUP_REQ::Register>),
-    (0x0a0 => current_last_swcore_pwrup: ReadWrite<u32,POWMAN_LAST_SWCORE_PWRUP_REQ::Register>),
-    (0x0a4 => dbg_pwrcfg: ReadWrite<u32,POWMAN_DBG_PWRCFG::Register>),
-    (0x0a8 => bootdis: ReadWrite<u32,POWMAN_BOOTDIS::Register>),
-    (0x0ac => dbgconfig: ReadWrite<u32,POWMAN_DBGCONFIG::Register>),
-    (0x0b0 => scratch0: ReadWrite<u32,POWMAN_SCRATCH0::Register>),
-    (0x0b4 => scratch1: ReadWrite<u32,POWMAN_SCRATCH1::Register>),
-    (0x0b8 => scratch2: ReadWrite<u32,POWMAN_SCRATCH2::Register>),
-    (0x0bc => scratch3: ReadWrite<u32,POWMAN_SCRATCH3::Register>),
-    (0x0c0 => scratch4: ReadWrite<u32,POWMAN_SCRATCH4::Register>),
-    (0x0c4 => scratch5: ReadWrite<u32,POWMAN_SCRATCH5::Register>),
-    (0x0c8 => scratch6: ReadWrite<u32,POWMAN_SCRATCH6::Register>),
-    (0x0cc => scratch7: ReadWrite<u32,POWMAN_SCRATCH7::Register>),
-    (0x0d0 => boot0: ReadWrite<u32,POWMAN_BOOT0::Register>),
-    (0x0d4 => boot0: ReadWrite<u32,POWMAN_BOOT1::Register>),
-    (0x0d8 => boot0: ReadWrite<u32,POWMAN_BOOT2::Register>),
-    (0x0dc => boot0: ReadWrite<u32,POWMAN_BOOT3::Register>),
-    (0x0e0 => intr: ReadWrite<u32,POWMAN_INTR::Register>),
-    (0x0e4 => inte: ReadWrite<u32,POWMAN_INTE::Register>),
-    (0x0e8 => intf: ReadWrite<u32,POWMAN_INTF::Register>),
-    (0x0ec => ints: ReadWrite<u32,POWMAN_INTS::Register>),
-    (0x0f0 => @END),
-}
-}
-
-register_bitfields![u32,
-XOSC_CTRL [
-    ENABLE OFFSET(12) NUMBITS(12) [ DISABLE = 0xd1e,ENABLE = 0xfab],
-    FREQ_RANGE OFFSET(0) NUMBITS(12) []
-],
-XOSC_STATUS [
-STABLE OFFSET(31) NUMBITS(1) [],
-BADWRITE OFFSET(24) NUMBITS(1) [],
-ENABLED OFFSET(12) NUMBITS(1) [],
-FREQ_RANGE OFFSET(0) NUMBITS(2) [
-F1_15MHZ = 0,
-F10_30MHZ = 1,
-F25_60MHZ = 2,
-F40_100MHZ = 3,
-]
-],
-XOSC_DORMANT [
-    VALUE OFFSET(0) NUMBITS(32) [
-        DORMANT = 0x636f6d61,
-        WAKE = 0x77616b65
-    ],
-],
-XOSC_STARTUP [
-    X4 OFFSET(20) NUMBITS(1) [],
-    DELAY OFFSET(0) NUMBITS(14) [],
-],
-XOSC_COUNT [
-    COUNTER OFFSET(0) NUMBITS(16) [],
-],
-];
-
-register_bitfields![u32,
-ROSC_CTRL [
-    ENABLE OFFSET(12) NUMBITS(12) [ DISABLE = 0xd1e,ENABLE = 0xfab],
-    FREQ_RANGE OFFSET(0) NUMBITS(12) [
-        LOW = 0xfa4,
-        MEDIUM = 0xfa5,
-        HIGH = 0xfa7,
-        TOOHIGH = 0xfa6
-    ]
-],
-ROSC_FREQA [
-    PASSWD OFFSET(16) NUMBITS(16) [],
-    DS3 OFFSET(12) NUMBITS(3) [],
-    DS2 OFFSET(8) NUMBITS(3) [],
-    DS1 OFFSET(4) NUMBITS(3) [],
-    DS0_RANDOM OFFSET(3) NUMBITS(1) [],
-    DS0 OFFSET(0) NUMBITS(3) [],
-],
-ROSC_FREQB [
-    PASSWD OFFSET(16) NUMBITS(16) [],
-    DS7 OFFSET(12) NUMBITS(3) [],
-    DS6 OFFSET(8) NUMBITS(3) [],
-    DS5 OFFSET(4) NUMBITS(3) [],
-    DS4 OFFSET(0) NUMBITS(3) [],
-],  
-ROSC_RANDOM [
-    SEED OFFSET(0) NUMBITS(32) [],
-],
-ROSC_DORMANT [
-    VALUE OFFSET(0) NUMBITS(32) [DORMANT=0x636f6d61,WAKE=0x77616b65],
-],
-ROSC_DIV [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-ROSC_PHASE [
-    PASSWD OFFSET(4) NUMBITS(8) [PASSWD_SET = 0xaaa,SHIFT_0 = 1],
-    ENABLE OFFSET(3) NUMBITS(1) [],
-    FLIP OFFSET(2) NUMBITS(1) [],
-    SHIFT OFFSET(0) NUMBITS(1) [],
-],
-ROSC_STATUS [
-    STABLE OFFSET(31) NUMBITS(1) [],
-    BADWRITE OFFSET(24) NUMBITS(1) [],
-    DIV_RUNNING OFFSET(16) NUMBITS(1) [],
-    ENABLE OFFSET(12) NUMBITS(1) [],
-],
-ROSC_RANDOMBIT [
-    VALUE OFFSET(0) NUMBITS(1) [],
-],
-ROSC_COUNT [
-COUNTER  OFFSET(0) NUMBITS(16) [],
-]
-];
-
-register_bitfields![u32,
-POWMAN_BADPASSWD [
-    VALUE OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_VREG_CTRL [
-    RST_N OFFSET(15) NUMBITS(1) [],
-    UNLOCK OFFSET(13) NUMBITS(1) [],
-    ISOLATE OFFSET(12) NUMBITS(1) [],
-    DISABLE_VOLTAGE_LIMIT OFFSET(8) NUMBITS(1) [],
-    HT_TH OFFSET(4) NUMBITS(3) [],
-    RESERVED  OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_VREG_STS [
-VOUT_OK OFFSET(4) NUMBITS(1) [],
-STARTUP OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_VREG [
-UPDATE_IN_PROGRESS OFFSET(15) NUMBITS(1) [],
-VSEL OFFSET(4) NUMBITS(4) [],
-RESERVED OFFSET(2) NUMBITS(1) [],
-HIZ OFFSET(1) NUMBITS(1) [],
-],
-POWMAN_VREG_LP_ENTRY [
-    VSEL OFFSET(4) NUMBITS(4) [],
-    MODE OFFSET(2) NUMBITS(1) [],
-    HIZ OFFSET(1) NUMBITS(1) [],
-],
-
-POWMAN_VREG_LP_EXIT [
-    VSEL OFFSET(4) NUMBITS(4) [],
-    MODE OFFSET(2) NUMBITS(1) [],
-    HIZ OFFSET(1) NUMBITS(1) [],
-],
-POWMAN_BOD_CTRL [
-    ISOLATE OFFSET(12) NUMBITS(1) [],
-],
-POWMAN_BOD [
-    VSEL OFFSET(4) NUMBITS(4) [],
-    MODE OFFSET(2) NUMBITS(1) [],
-    HIZ OFFSET(1) NUMBITS(1) [],
-],
-POWMAN_BOD_LP_ENTRY [
-    VSEL OFFSET(4) NUMBITS(4) [],
-    MODE OFFSET(2) NUMBITS(1) [],
-    HIZ OFFSET(1) NUMBITS(1) [],
-],
-
-POWMAN_BOD_LP_EXIT [
-    VSEL OFFSET(4) NUMBITS(4) [],
-    MODE OFFSET(2) NUMBITS(1) [],
-    HIZ OFFSET(1) NUMBITS(1) [],
-],
-
-POWMAN_LPOSC [
-    TRIM OFFSET(4) NUMBITS(6) [],
-    MODE OFFSET(0) NUMBITS(2) [],
-],
-POWMAN_CHIPRESET [
-    HAD_WATCHDOG_RESET_PSM OFFSET(28) NUMBITS(1) [],
-    HAD_HZD_SYS_RESET_REQ OFFSET(27) NUMBITS(1) [],
-    HAD_GLITCH_DETECT OFFSET(26) NUMBITS(1) [],
-    HAD_SWCORE_PD OFFSET(25) NUMBITS(1) [],
-    HAD_WATCHDOG_RESET_SWCORE OFFSET(24) NUMBITS(1) [],
-    HAD_WATCHDOG_RESET_POWMAN OFFSET(23) NUMBITS(1) [],
-    HAD_WATCHDOG_RESET_POWMAN_ASYNC  OFFSET(22) NUMBITS(1) [],
-    HAD_RESCUE  OFFSET(21) NUMBITS(1) [],
-    HAD_DP_RESET_REQ OFFSET(19) NUMBITS(1) [],
-    HAD_RUN_LOW OFFSET(18) NUMBITS(1) [],
-    HAD_BOR OFFSET(17) NUMBITS(1) [],
-    HAD_POR OFFSET(16) NUMBITS(1) [],
-    RESCUE_FLAG OFFSET(4) NUMBITS(1) [],
-    DOUBLE_TAP OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_WDSEL [
-    RESET_PSM OFFSET(12) NUMBITS(1) [],
-    RESET_SW_CORE OFFSET(8) NUMBITS(1) [],
-    RESET_POWMAN_ASYNC OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_SEQ_CFG [
-    USING_FAST_POWCK OFFSET(20) NUMBITS(1) [],
-    USING_BOD_LP OFFSET(17) NUMBITS(1) [],
-    USING_VREG_LP OFFSET(16) NUMBITS(1) [],
-    USE_FAST_POWCK OFFSET(12) NUMBITS(1) [],
-    RUN_LPOSC_IN_LP OFFSET(8) NUMBITS(1) [].
-    USE_BOD_HP OFFSET(7) NUMBITS(1) [],
-    USE_BOD_LP OFFSET(6) NUMBITS(1) [],
-    USE_VREG_HP OFFSET(5) NUMBITS(1) [],
-    USE_VREG_LP OFFSET(4) NUMBITS(1) [],
-    HW_PWRUP_SRAM0 OFFSET(1) NUMBITS(1) [],
-    HW_PWRUP_SRAM1 OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_STATE [
-    CHANGING OFFSET(13) NUMBITS(1) [],
-    WAITING OFFSET(12) NUMBITS(1) [],
-    BAD_HW_REQ OFFSET(11) NUMBITS(1) [],
-    BAD_SW_REQ OFFSET(10) NUMBITS(1) [],
-    PWRUP_WHILE_WAITING OFFSET(9) NUMBITS(1) [],
-    REQ_IGNORED OFFSET(8) NUMBITS(1) [],
-    REQ OFFSET(4) NUMBITS(4) [],
-    CURRENT OFFSET(0) NUMBITS(4) [],
-],
-POWMAN_POW_FASTDIV [
-    VALUE OFFSET(0) NUMBITS(11) [],
-],
-POWMAN_POW_DELAY [
-    SRAM_STEP OFFSET(8) NUMBITS(8) [],
-    XIP_STEP OFFSET(4) NUMBITS(4) [],
-    SWCORE OFFSET(0) NUMBITS(4) [],
-],
-POWMAN_EXT_CTRL0 [
-    LP_EXIT_STATE OFFSET(14) NUMBITS(1) [],
-    LP_ENTRY_STATE OFFSET(13) NUMBITS(1) [],
-    INIT_STATE OFFSET(12) NUMBITS(1) [],
-    INIT  OFFSET(8) NUMBITS(1) [],
-    GPIO_SELECT OFFSET(0) NUMBITS(6) [],
-],
-POWMAN_EXT_CTRL1 [
-        LP_EXIT_STATE OFFSET(14) NUMBITS(1) [],
-        LP_ENTRY_STATE OFFSET(13) NUMBITS(1) [],
-        INIT_STATE OFFSET(12) NUMBITS(1) [],
-        INIT  OFFSET(8) NUMBITS(1) [],
-        GPIO_SELECT OFFSET(0) NUMBITS(6) [],
-],  
-POWMAN_EXT_TIME_REF [
-        DRIVE_LPCK OFFSET(4) NUMBITS(1) [],
-        SOURCE_SEL OFFSET(0) NUMBITS(2) [GPIO12=0,GPIO20 = 1,GPIO14=2,GPIO22=3]
-],
-POWMAN_LPOSC_FREQ_KHZ_INT [
-    VALUE OFFSET(0) NUMBITS(6) [],
-],
-POWMAN_LPOSC_FREQ_KHZ_FRAC [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_XOSC_FREQ_KHZ_INT [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_XOSC_FREQ_KHZ_FRAC [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_SET_TIME_63TO48 [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_SET_TIME_47TO32 [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_SET_TIME_31TO16 [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_SET_TIME_15TO0 [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_READ_TIME_UPPER [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_READ_TIME_LOWER [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_ALARM_TIME_63TO48 [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_ALARM_TIME_47TO32 [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_ALARM_TIME_31TO16 [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_ALARM_TIME_15TO0 [
-    VALUE OFFSET(0) NUMBITS(16) [],
-],
-POWMAN_TIMER [
-    USING_GPIO_1HZ OFFSET(19) NUMBITS(1) [],
-    USING_GPIO_1KHZ OFFSET(18) NUMBITS(1) [],
-    USING_LPOSC OFFSET(17) NUMBITS(1) [],
-    USING_XOSC OFFSET(16) NUMBITS(1) [],
-    USE_GPIO_1HZ OFFSET(13) NUMBITS(1) [],
-    USE_GPIO_1KHZ OFFSET(10) NUMBITS(1) [],
-    USE_XOSC OFFSET(9) NUMBITS(1) [],
-    USE_LPOSC OFFSET(8) NUMBITS(1) [],
-    ALARM OFFSET(6) NUMBITS(1) [],
-    PWRUP_ON_ALARM OFFSET(5) NUMBITS(1) [],
-    ALARM_ENAB OFFSET(4) NUMBITS(1) [],
-    CLEAR OFFSET(2) NUMBITS(1) [],
-    RUN OFFSET(1) NUMBITS(1) [],
-    NONSEC_WRITE OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_PWRUP0 [
-    RAW_STATUS OFFSET(10) NUMBITS(1) [],
-    STATUS OFFSET(9) NUMBITS(1) [],
-    MODE OFFSET(8) NUMBITS(1) [LEVEL = 0x0,EDGE = 0x1],
-    DIRECTION  OFFSET(7) NUMBITS(1) [LOW_FALLING = 0x0,HIGH_RISING = 0x1],
-ENABLE OFFSET(6) NUMBITS(1) [],
-SOURCE  OFFSET(0) NUMBITS(6) [],
-],
-POWMAN_PWRUP1 [
-    RAW_STATUS OFFSET(10) NUMBITS(1) [],
-    STATUS OFFSET(9) NUMBITS(1) [],
-    MODE OFFSET(8) NUMBITS(1) [LEVEL = 0x0,EDGE = 0x1],
-    DIRECTION  OFFSET(7) NUMBITS(1) [LOW_FALLING = 0x0,HIGH_RISING = 0x1],
-ENABLE OFFSET(6) NUMBITS(1) [],
-SOURCE  OFFSET(0) NUMBITS(6) [],
-],
-POWMAN_PWRUP2 [
-    RAW_STATUS OFFSET(10) NUMBITS(1) [],
-    STATUS OFFSET(9) NUMBITS(1) [],
-    MODE OFFSET(8) NUMBITS(1) [LEVEL = 0x0,EDGE = 0x1],
-    DIRECTION  OFFSET(7) NUMBITS(1) [LOW_FALLING = 0x0,HIGH_RISING = 0x1],
-ENABLE OFFSET(6) NUMBITS(1) [],
-SOURCE  OFFSET(0) NUMBITS(6) [],
-],
-POWMAN_PWRUP3 [
-    RAW_STATUS OFFSET(10) NUMBITS(1) [],
-    STATUS OFFSET(9) NUMBITS(1) [],
-    MODE OFFSET(8) NUMBITS(1) [LEVEL = 0x0,EDGE = 0x1],
-    DIRECTION  OFFSET(7) NUMBITS(1) [LOW_FALLING = 0x0,HIGH_RISING = 0x1],
-ENABLE OFFSET(6) NUMBITS(1) [],
-SOURCE  OFFSET(0) NUMBITS(6) [],
-],
-POWMAN_CURRENT_PWRUP_REQ [
-    VALUE OFFSET(0) NUMBITS(7) [],
-],
-POWMAN_LAST_SWCORE_PWRUP_REQ [
-    VALUE OFFSET(0) NUMBITS(7) [],
-],
-POWMAN_DBG_PWRCFG [
-    VALUE OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_BOOTDIS [
-    NEXT OFFSET(1) NUMBITS(1) [],
-    NOW OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_DBGCONFIG [
-    DP_INSTID OFFSET(0) NUMBITS(4) [],
-],
-POWMAN_SCRATCH0 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_SCRATCH1 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_SCRATCH2 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_SCRATCH3 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_SCRATCH4 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_SCRATCH5 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_SCRATCH6 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_SCRATCH7 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_BOOT0 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_BOOT1 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_BOOT2 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_BOOT3 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_BOOT4 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_BOOT5 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_BOOT6 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_BOOT7 [
-    VALUE OFFSET(0) NUMBITS(32) [],
-],
-POWMAN_INTR [
-    PWRUP_WHILE_WAITING OFFSET(3) NUMBITS(1) [],
-    STATE_REQ_IGNORED OFFSET(2) NUMBITS(1) [],
-    TIMER OFFSET(1) NUMBITS(1) [],
-    VREG_OUTPUT_LOW OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_INTE [
-    PWRUP_WHILE_WAITING OFFSET(3) NUMBITS(1) [],
-    STATE_REQ_IGNORED OFFSET(2) NUMBITS(1) [],
-    TIMER OFFSET(1) NUMBITS(1) [],
-    VREG_OUTPUT_LOW OFFSET(0) NUMBITS(1) [],
-],
-
-POWMAN_INTF [
-    PWRUP_WHILE_WAITING OFFSET(3) NUMBITS(1) [],
-    STATE_REQ_IGNORED OFFSET(2) NUMBITS(1) [],
-    TIMER OFFSET(1) NUMBITS(1) [],
-    VREG_OUTPUT_LOW OFFSET(0) NUMBITS(1) [],
-],
-POWMAN_INTS [
-    PWRUP_WHILE_WAITING OFFSET(3) NUMBITS(1) [],
-    STATE_REQ_IGNORED OFFSET(2) NUMBITS(1) [],
-    TIMER OFFSET(1) NUMBITS(1) [],
-    VREG_OUTPUT_LOW OFFSET(0) NUMBITS(1) [],
-]
-];
-
-
 
 register_bitfields![u32,
     CLK_GPOUTx_CTRL [
@@ -647,7 +163,7 @@ register_bitfields![u32,
             CLK_ADC = 8,
             CLK_RTC = 9,
             CLK_REF = 0xa
-        ],
+        ]
     ],
     CLK_GPOUTx_DIV [
         /// Integer component of the divisor, 0 -> divide by 2^16
@@ -694,7 +210,7 @@ register_bitfields![u32,
         /// Selects the clock source glitchlessly, can be changed on-the-fly
         SRC OFFSET(0) NUMBITS(1) [
             CLKSRC_CLK_SYS_AUX = 1,
-            CLK_REF = 0
+            CLK_REF = 0,
         ]
     ],
     CLK_SYS_DIV [
@@ -927,10 +443,8 @@ register_bitfields![u32,
         FC0_INTERVAL OFFSET(0) NUMBITS(4) []
     ],
     FC0_SRC [
-
         FC0_SRC OFFSET(0) NUMBITS(8) [
 
-            NULL = 0,
         ]
     ],
     FC0_STATUS [
@@ -1142,7 +656,7 @@ register_bitfields![u32,
         clk_sys_sram7 OFFSET(11) NUMBITS(1) [],
         clk_sys_sram6 OFFSET(10) NUMBITS(1) [],
         clk_sys_sram5 OFFSET(9) NUMBITS(1) [],
-        clk_sys_sram4 OFFSET(8) NUMBITS(1) []
+        clk_sys_sram4 OFFSET(8) NUMBITS(1) [],
         clk_sys_sram3 OFFSET(7) NUMBITS(1) [],
 
         clk_sys_sram2 OFFSET(6) NUMBITS(1) [],
@@ -1247,7 +761,7 @@ register_bitfields![u32,
         clk_sys_sram7 OFFSET(11) NUMBITS(1) [],
         clk_sys_sram6 OFFSET(10) NUMBITS(1) [],
         clk_sys_sram5 OFFSET(9) NUMBITS(1) [],
-        clk_sys_sram4 OFFSET(8) NUMBITS(1) []
+        clk_sys_sram4 OFFSET(8) NUMBITS(1) [],
         clk_sys_sram3 OFFSET(7) NUMBITS(1) [],
 
         clk_sys_sram2 OFFSET(6) NUMBITS(1) [],
@@ -1264,15 +778,19 @@ register_bitfields![u32,
         clk_peri_spi0 OFFSET(0) NUMBITS(1) [],
     ],
     INTR [
+
         CLK_SYS_RESUS OFFSET(0) NUMBITS(1) []
     ],
     INTE [
+
         CLK_SYS_RESUS OFFSET(0) NUMBITS(1) []
     ],
     INTF [
+
         CLK_SYS_RESUS OFFSET(0) NUMBITS(1) []
     ],
     INTS [
+
         CLK_SYS_RESUS OFFSET(0) NUMBITS(1) []
     ]
 ];
@@ -1315,20 +833,18 @@ register_bitfields![u32,
         /// divide by 1-7
         POSTDIV2 OFFSET(12) NUMBITS(3) []
     ],
-    INTR [
+    PLL_INTR [
        LOCK_N_STICKY OFFSET(0) NUMBITS(1) []
     ],
-    INTE [
+    PLL_INTE [
        LOCK_N_STICKY OFFSET(0) NUMBITS(1) []
     ],
-    INTF [
+    PLL_INTF [
        LOCK_N_STICKY OFFSET(0) NUMBITS(1) []
     ],
-    INTS [
+    PLL_INTS [
        LOCK_N_STICKY OFFSET(0) NUMBITS(1) []
     ],
-
-
 ];
 
 const PLL_SYS_BASE: StaticRef<PllRegisters> =
@@ -1339,19 +855,8 @@ const PLL_USB_BASE: StaticRef<PllRegisters> =
 
 const CLOCKS_BASE: StaticRef<ClocksRegisters> =
     unsafe { StaticRef::new(0x40010000 as *const ClocksRegisters) };
-const XOSC_BASE: StaticRef<XOSCRegisters> =
-    unsafe { StaticRef::new(0x40048000 as *const XOSCRegisters) };
 
-    const ROSC_BASE: StaticRef<ROSCRegisters> =
-    unsafe { StaticRef::new(0x400e8000 as *const ROSCRegisters) };
-
-    const POWMAN_BASE: StaticRef<POWMANRegisters> =
-    unsafe { StaticRef::new(0x40100000 as *const POWMANRegisters) };
-
-//    const TICKS_BASE: StaticRef<TICKRegisters> =
-//    unsafe { StaticRef::new(0x40108000 as *const TICKRegisters) };
-
-const NUM_CLOCKS: usize = 10;
+const NUM_CLOCKS: usize = 12;
 
 pub struct Clocks {
     registers: StaticRef<ClocksRegisters>,
@@ -1388,13 +893,40 @@ pub enum GpioAuxiliaryClockSource {
     Gpio0 = 1,
     Gpio1 = 2,
     PllUsb = 3,
-    Rsoc = 4,
+    PllUsbPrimary = 4,
+    Rsoc = 5,
+    Xosc = 6,
+    Lposc = 7,
+    Sys = 8,
+    Usb = 9,
+    Adc = 10,
+    Ref = 11,
+    Peri = 12,
+    Hstx = 13,
+    Otp = 14,
+}
+
+// Freq counter
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[repr(u8)]
+pub enum FCClockSource {
+    NoClk = 0,
+    PllSys = 1,
+    PllUsb = 2,
+    Rosc = 3,
+    RoscPH = 4,
     Xosc = 5,
-    Sys = 6,
-    Usb = 7,
-    Adc = 8,
-    Rtc = 9,
-    Ref = 10,
+    Gpio0 = 6,
+    Gpio1 = 7,
+    Ref = 8,
+    Sys = 9,
+    Peri = 0xa,
+    Usb = 0xb,
+    Adc = 0xc,
+    Hstx = 0xd,
+    Lposc = 0xe,
+    Otp = 0xf,
+    PllUsbDft = 0x10,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -1484,7 +1016,7 @@ pub enum ClockSource {
     Peripheral,
     Usb,
     Adc,
-    Rtc,
+    //    Rtc,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -1495,10 +1027,11 @@ pub enum ClockAuxiliarySource {
     Peripheral(PeripheralAuxiliaryClockSource),
     Usb(UsbAuxiliaryClockSource),
     Adc(AdcAuxiliaryClockSource),
-    Rtc(RtcAuxiliaryClockSource),
+    //    Rtc(RtcAuxiliaryClockSource),
 }
 
 impl Clocks {
+    #[inline(never)]
     pub const fn new() -> Self {
         Self {
             registers: CLOCKS_BASE,
@@ -1514,22 +1047,24 @@ impl Clocks {
                 Cell::new(0),
                 Cell::new(0),
                 Cell::new(0),
+                Cell::new(0),
+                Cell::new(0),
             ],
         }
     }
-
+    #[inline(never)]
     pub fn enable_resus(&self) {
         self.registers
             .clk_sys_resus_ctrl
             .modify(CLK_SYS_RESUS_CTRL::ENABLE::SET);
     }
-
+    #[inline(never)]
     pub fn disable_resus(&self) {
         self.registers
             .clk_sys_resus_ctrl
             .modify(CLK_SYS_RESUS_CTRL::ENABLE::CLEAR);
     }
-
+    #[inline(never)]
     pub fn disable_sys_aux(&self) {
         self.registers
             .clk_sys_ctrl
@@ -1541,7 +1076,7 @@ impl Clocks {
             != 0x1
         {}
     }
-
+    #[inline(never)]
     pub fn disable_ref_aux(&self) {
         self.registers
             .clk_ref_ctrl
@@ -1678,7 +1213,7 @@ impl Clocks {
     fn loop_3_cycles(&self, _clock: Clock) {
         unimplemented!()
     }
-
+    #[inline(never)]
     pub fn configure_gpio_out(
         &self,
         clock: Clock,
@@ -1732,7 +1267,7 @@ impl Clocks {
             _ => panic!("trying to set a non gpio clock"),
         }
     }
-
+    #[inline(never)]
     pub fn configure_system(
         &self,
         source: SystemClockSource,
@@ -1793,7 +1328,7 @@ impl Clocks {
 
         self.set_frequency(Clock::System, freq);
     }
-
+    #[inline(never)]
     pub fn configure_reference(
         &self,
         source: ReferenceClockSource,
@@ -1854,7 +1389,7 @@ impl Clocks {
 
         self.set_frequency(Clock::Reference, freq);
     }
-
+    #[inline(never)]
     pub fn configure_peripheral(
         &self,
         auxiliary_source: PeripheralAuxiliaryClockSource,
@@ -1880,7 +1415,7 @@ impl Clocks {
 
         self.set_frequency(Clock::Peripheral, freq);
     }
-
+    #[inline(never)]
     pub fn configure_usb(
         &self,
         auxiliary_source: UsbAuxiliaryClockSource,
@@ -1973,5 +1508,15 @@ impl Clocks {
         self.set_divider(Clock::Adc, div);
 
         self.set_frequency(Clock::Adc, freq);
+    }
+    #[inline(never)]
+    pub fn measure_frequency_setup(&self, src: FCClockSource) {
+        let set_src = src as u32;
+        self.registers.fc0_src.write(FC0_SRC::FC0_SRC.val(set_src));
+        while self.registers.fc0_status.read(FC0_STATUS::DONE) != 0x1 {}
+    }
+    #[inline(never)]
+    pub fn measure_frequency(&self) -> u32 {
+        self.registers.fc0_result.read(FC0_RESULT::KHZ)
     }
 }
