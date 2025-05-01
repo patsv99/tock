@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright Tock Contributors 2022.
 
-//! GPIO, RP2040
+//! GPIO, RP2350
 //!
 //! ### Author
 //! * Ioana Culic <ioana.culic@wyliodrin.com>
@@ -28,31 +28,131 @@ struct GpioProc {
     status: [ReadWrite<u32, GPIO_INTxx::Register>; 4],
 }
 
-register_structs! {
-    /// GPIO Registers.
-    GpioRegisters {
-        (0x000 => pin: [GpioPin; 30]),
+#[repr(C)]
+struct IrqSummary {
+    intr0: ReadWrite<u32,INTR_0::Register>,
+    intr1: ReadWrite<u32,INTR_1::Register>,
+    intr2: ReadWrite<u32,INTR_2::Register>,
+    intr3: ReadWrite<u32,INTR_3::Register>,
+    intr4: ReadWrite<u32,INTR_4::Register>,
+    intr5: ReadWrite<u32,INTR_5::Register>,
+}
 
+#[repr(C)]
+struct RawInterrupt {
+    proc_0_0: ReadWrite<u32,GPIO_Proc0_0::Register>,
+    proc_0_1: ReadWrite<u32,GPIO_Proc0_1::Register>,
+}
+
+#[repr(C)]
+struct DormantWakeIntr {
+}
+
+
+register_structs! {
+    // GPIO Registers.
+    GpioRegisters {
+        (0x000 => pin: [GpioPin; 48]),
+    
         /// Raw interrupts
-        (0x0f0 => intr: [ReadWrite<u32, GPIO_INTxx::Register>; 4]),
+        ///   (0x030 => clk_ref_ctrl: ReadWrite<u32, CLK_REF_CTRL::Register>),
+        (0x200 => irqsummaryProc0Secure0_ : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE0>), 
+        (0x204 => irqsummaryProc0Secure1_ : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE1>), 
+        (0x208 => irqsummaryProc0NSecure0_ : ReadWrite<u32,IRQSUMMARY_PROC0_NSECURE0>), 
+        (0x20c => irqsummaryProc0NSecure1_ : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE1>), 
+        (0x210 => irqsummaryProc1Secure0_ : ReadWrite<u32,IRQSUMMARY_PROC1_SECURE0>), 
+        (0x214 => irqsummaryProc1Secure1_ : ReadWrite<u32,IRQSUMMARY_PROC1_SECURE1>), 
+        (0x218 => irqsummaryProc1NSecure0_ : ReadWrite<u32,IRQSUMMARY_PROC1_NSECURE0>), 
+        (0x21c => irqsummaryProc1NSecure1_ : ReadWrite<u32,IRQSUMMARY_PROC1_NSECURE1>),
+        (0x220 => irqsummaryComaWakeSecure0_ : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_SECURE0>),
+        (0x224 => irqsummaryComaWakeSecure1_ : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_SECURE1>),
+        (0x228 => irqsummaryComaWakeNSecure0_ : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_NSECURE0>),
+        (0x22c => irqsummaryComaWakeNSecure1_ : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_NSECURE1>),
+        (0x230 => intr0 : ReadWrite<u32,INTR_0>),
+        (0x234 => intr1 : ReadWrite<u32,INTR_1>),
+        (0x238 => intr2 : ReadWrite<u32,INTR_2>),
+        (0x23c => intr3 : ReadWrite<u32,INTR_3>),
+        (0x240 => intr4 : ReadWrite<u32,INTR_4>),
+        (0x244 => intr5 : ReadWrite<u32,INTR_5>),
+
+
 
         /// Interrupts for procs
-        (0x100 => interrupt_proc: [GpioProc; 2]),
+        (0x248 => proc0_inte0: ReadWrite<u32,INTR_0>),
+        (0x24c => proc0_inte1: ReadWrite<u32,INTR_1>),
+        (0x250 => proc0_inte2: ReadWrite<u32,INTR_2>),
+        (0x254 => proc0_inte3: ReadWrite<u32,INTR_3>),
+        (0x258 => proc0_inte4: ReadWrite<u32,INTR_4>),
+        (0x25c => proc0_inte5: ReadWrite<u32,INTR_5>),
+
+        (0x260 => proc0_intf0: ReadWrite<u32,INTR_1>),
+        (0x264 => proc0_intf1: ReadWrite<u32,INTR_1>),
+        (0x268 => proc0_intf2: ReadWrite<u32,INTR_2>),
+        (0x26c => proc0_intf3: ReadWrite<u32,INTR_3>),
+        (0x270 => proc0_intf4: ReadWrite<u32,INTR_4>),
+        (0x274 => proc0_intf5: ReadWrite<u32,INTR_5>),
+
+        (0x278 => proc0_ints0: ReadWrite<u32,INTR_1>),
+        (0x27c => proc0_ints1: ReadWrite<u32,INTR_1>),
+        (0x280 => proc0_ints2: ReadWrite<u32,INTR_2>),
+        (0x284 => proc0_ints3: ReadWrite<u32,INTR_3>),
+        (0x288 => proc0_ints4: ReadWrite<u32,INTR_4>),
+        (0x28c => proc0_ints5: ReadWrite<u32,INTR_5>),
+
+        (0x290 => proc1_inte0: ReadWrite<u32,INTR_0>),
+        (0x294 => proc1_inte1: ReadWrite<u32,INTR_1>),
+        (0x298 => proc1_inte2: ReadWrite<u32,INTR_2>),
+        (0x29c => proc1_inte3: ReadWrite<u32,INTR_3>),
+        (0x2a0 => proc1_inte4: ReadWrite<u32,INTR_4>),
+        (0x2a4 => proc1_inte5: ReadWrite<u32,INTR_5>),
+
+        (0x2a8 => proc1_intf0: ReadWrite<u32,INTR_1>),
+        (0x2ac => proc1_intf1: ReadWrite<u32,INTR_1>),
+        (0x2b0 => proc1_intf2: ReadWrite<u32,INTR_2>),
+        (0x2b4 => proc1_intf3: ReadWrite<u32,INTR_3>),
+        (0x2b8 => proc1_intf4: ReadWrite<u32,INTR_4>),
+        (0x2bc => proc1_intf5: ReadWrite<u32,INTR_5>),
+
+        (0x2c0 => proc1_ints0: ReadWrite<u32,INTR_1>),
+        (0x2c4 => proc1_ints1: ReadWrite<u32,INTR_1>),
+        (0x2c8 => proc1_ints2: ReadWrite<u32,INTR_2>),
+        (0x2cc => proc1_ints3: ReadWrite<u32,INTR_3>),
+        (0x2d0 => proc1_ints4: ReadWrite<u32,INTR_4>),
+        (0x2d4 => proc1_ints5: ReadWrite<u32,INTR_5>),
 
         /// Wake
-        (0x160 => wake: GpioProc),
+        (0x2d8 => dormant_inte0: ReadWrite<u32,INTR_0>),
+        (0x2dc => dormant_inte1: ReadWrite<u32,INTR_1>),
+        (0x2e0 => dormant_inte2: ReadWrite<u32,INTR_2>),
+        (0x2e4 => dormant_inte3: ReadWrite<u32,INTR_3>),
+        (0x2e8 => dormant_inte4: ReadWrite<u32,INTR_4>),
+        (0x2ec => dormant_inte5: ReadWrite<u32,INTR_5>),
+
+        (0x2f0 => dormant_intf0: ReadWrite<u32,INTR_0>),
+        (0x2f4 => dormant_intf1: ReadWrite<u32,INTR_1>),
+        (0x2f8 => dormant_intf2: ReadWrite<u32,INTR_2>),
+        (0x2fc => dormant_intf3: ReadWrite<u32,INTR_3>),
+        (0x300 => dormant_intf4: ReadWrite<u32,INTR_4>),
+        (0x304 => dormant_intf5: ReadWrite<u32,INTR_5>),
+
+        (0x308 => dormant_ints0: ReadWrite<u32,INTR_0>),
+        (0x30c => dormant_ints1: ReadWrite<u32,INTR_1>),
+        (0x310 => dormant_ints2: ReadWrite<u32,INTR_2>),
+        (0x314 => dormant_ints3: ReadWrite<u32,INTR_3>),
+        (0x318 => dormant_ints4: ReadWrite<u32,INTR_4>),
+        (0x31c => dormant_ints5: ReadWrite<u32,INTR_5>),
 
         /// End
-        (0x190 => @END),
+        (0x320 => @END),
     },
-    /// User Bank Pad Control Registers
+    // User Bank Pad Control Registers
     GpioPadRegisters {
         /// Voltage select
         (0x00 => voltage: ReadWrite<u32, VOLTAGE_SELECT::Register>),
 
         /// Pads control
-        (0x04 => gpio_pad: [ReadWrite<u32, GPIO_PAD::Register>; 32]),
-
+        (0x04 => gpio_pad: [ReadWrite<u32, GPIO_PAD::Register>; 48]),
+        (0xc4 => swclk : ReadWrite<u32,SWCLK::Register>)
         /// End
         (0x84 => @END),
     },
@@ -106,6 +206,22 @@ register_structs! {
 }
 
 register_bitfields![u32,
+SWCLK [
+    iso OFFSET(8) NUMBITS(1) [],
+    od OFFSET(7) NUMBITS(1) [],
+    ie OFFSET(8) NUMBITS(1) [],
+    drive OFFSET(4) NUMBITS(2) [
+        2MA = 0,
+        4MA = 1,
+        8MA = 2,
+        12MA = 3,
+    ],
+    pue OFFSET(3) NUMBITS(1) [],
+    pde OFFSET(2) NUMBITS(1) [],
+    schmitt OFFSET(1) NUMBITS(1) [],
+    slewfast OFFSET(0) NUMBITS(1) [],
+],
+
     GPIOx_STATUS [
         /// interrupt to processors, after override is applied
         IRQTOPROC OFFSET(26) NUMBITS(1) [],
@@ -168,6 +284,573 @@ register_bitfields![u32,
             GPIO_FUNC_NULL = 0x1f
         ]
     ],
+    IRQSUMMARY_PROC0_SECURE0 [
+    GPIO31 OFFSET(31) NUMBITS(1) [],
+    GPIO30 OFFSET(30) NUMBITS(1) [],
+    GPIO29 OFFSET(29) NUMBITS(1) [],
+    GPIO28 OFFSET(28) NUMBITS(1) [],
+    GPIO27 OFFSET(27) NUMBITS(1) [],
+    GPIO26 OFFSET(26) NUMBITS(1) [],
+    GPIO25 OFFSET(25) NUMBITS(1) [],
+    GPIO24 OFFSET(24) NUMBITS(1) [],
+    GPIO23 OFFSET(23) NUMBITS(1) [],
+    GPIO22 OFFSET(22) NUMBITS(1) [],
+    GPIO21 OFFSET(21) NUMBITS(1) [],
+    GPIO20 OFFSET(20) NUMBITS(1) [],
+    GPIO19 OFFSET(19) NUMBITS(1) [],
+    GPIO18 OFFSET(18) NUMBITS(1) [],
+    GPIO17 OFFSET(17) NUMBITS(1) [],
+    GPIO16 OFFSET(16) NUMBITS(1) [],
+    GPIO15 OFFSET(15) NUMBITS(1) [],
+    GPIO14 OFFSET(14) NUMBITS(1) [],
+    GPIO13 OFFSET(13) NUMBITS(1) [],
+    GPIO12 OFFSET(12) NUMBITS(1) [],
+    GPIO11 OFFSET(11) NUMBITS(1) [],
+    GPIO10 OFFSET(10) NUMBITS(1) [],
+    GPIO09 OFFSET(09) NUMBITS(1) [],
+    GPIO08 OFFSET(08) NUMBITS(1) [],
+    GPIO07 OFFSET(07) NUMBITS(1) [],
+    GPIO06 OFFSET(06) NUMBITS(1) [],
+    GPIO05 OFFSET(05) NUMBITS(1) [],
+    GPIO04 OFFSET(04) NUMBITS(1) [],
+    GPIO03 OFFSET(03) NUMBITS(1) [],
+    GPIO02 OFFSET(02) NUMBITS(1) [],
+    GPIO01 OFFSET(01) NUMBITS(1) [],
+    GPIO00 OFFSET(00) NUMBITS(1) [],
+  ],  
+    IRQSUMMARY_PROC0_SECURE1 [
+    GPIO47 OFFSET(15) NUMBITS(1) [],
+    GPIO46 OFFSET(14) NUMBITS(1) [],
+    GPIO45 OFFSET(13) NUMBITS(1) [],
+    GPIO44 OFFSET(12) NUMBITS(1) [],
+    GPIO43 OFFSET(11) NUMBITS(1) [],
+    GPIO42 OFFSET(10) NUMBITS(1) [],
+    GPIO41 OFFSET(09) NUMBITS(1) [],
+    GPIO40 OFFSET(08) NUMBITS(1) [],
+    GPIO39 OFFSET(07) NUMBITS(1) [],
+    GPIO38 OFFSET(06) NUMBITS(1) [],
+    GPIO37 OFFSET(05) NUMBITS(1) [],
+    GPIO36 OFFSET(04) NUMBITS(1) [],
+    GPIO35 OFFSET(03) NUMBITS(1) [],
+    GPIO34 OFFSET(02) NUMBITS(1) [],
+    GPIO33 OFFSET(01) NUMBITS(1) [],
+    GPIO32 OFFSET(00) NUMBITS(1) [],
+],
+    IRQSUMMARY_PROC0_NSECURE0 [
+    GPIO31 OFFSET(31) NUMBITS(1) [],
+    GPIO30 OFFSET(30) NUMBITS(1) [],
+    GPIO29 OFFSET(29) NUMBITS(1) [],
+    GPIO28 OFFSET(28) NUMBITS(1) [],
+    GPIO27 OFFSET(27) NUMBITS(1) [],
+    GPIO26 OFFSET(26) NUMBITS(1) [],
+    GPIO25 OFFSET(25) NUMBITS(1) [],
+    GPIO24 OFFSET(24) NUMBITS(1) [],
+    GPIO23 OFFSET(23) NUMBITS(1) [],
+    GPIO22 OFFSET(22) NUMBITS(1) [],
+    GPIO21 OFFSET(21) NUMBITS(1) [],
+    GPIO20 OFFSET(20) NUMBITS(1) [],
+    GPIO19 OFFSET(19) NUMBITS(1) [],
+    GPIO18 OFFSET(18) NUMBITS(1) [],
+    GPIO17 OFFSET(17) NUMBITS(1) [],
+    GPIO16 OFFSET(16) NUMBITS(1) [],
+    GPIO15 OFFSET(15) NUMBITS(1) [],
+    GPIO14 OFFSET(14) NUMBITS(1) [],
+    GPIO13 OFFSET(13) NUMBITS(1) [],
+    GPIO12 OFFSET(12) NUMBITS(1) [],
+    GPIO11 OFFSET(11) NUMBITS(1) [],
+    GPIO10 OFFSET(10) NUMBITS(1) [],
+    GPIO09 OFFSET(09) NUMBITS(1) [],
+    GPIO08 OFFSET(08) NUMBITS(1) [],
+    GPIO07 OFFSET(07) NUMBITS(1) [],
+    GPIO06 OFFSET(06) NUMBITS(1) [],
+    GPIO05 OFFSET(05) NUMBITS(1) [],
+    GPIO04 OFFSET(04) NUMBITS(1) [],
+    GPIO03 OFFSET(03) NUMBITS(1) [],
+    GPIO02 OFFSET(02) NUMBITS(1) [],
+    GPIO01 OFFSET(01) NUMBITS(1) [],
+    GPIO00 OFFSET(00) NUMBITS(1) [],
+  ],  
+    IRQSUMMARY_PROC0_NSECURE1 [
+    GPIO47 OFFSET(15) NUMBITS(1) [],
+    GPIO46 OFFSET(14) NUMBITS(1) [],
+    GPIO45 OFFSET(13) NUMBITS(1) [],
+    GPIO44 OFFSET(12) NUMBITS(1) [],
+    GPIO43 OFFSET(11) NUMBITS(1) [],
+    GPIO42 OFFSET(10) NUMBITS(1) [],
+    GPIO41 OFFSET(09) NUMBITS(1) [],
+    GPIO40 OFFSET(08) NUMBITS(1) [],
+    GPIO39 OFFSET(07) NUMBITS(1) [],
+    GPIO38 OFFSET(06) NUMBITS(1) [],
+    GPIO37 OFFSET(05) NUMBITS(1) [],
+    GPIO36 OFFSET(04) NUMBITS(1) [],
+    GPIO35 OFFSET(03) NUMBITS(1) [],
+    GPIO34 OFFSET(02) NUMBITS(1) [],
+    GPIO33 OFFSET(01) NUMBITS(1) [],
+    GPIO32 OFFSET(00) NUMBITS(1) [],
+],
+   IRQSUMMARY_PROC1_SECURE0 [
+    GPIO31 OFFSET(31) NUMBITS(1) [],
+    GPIO30 OFFSET(30) NUMBITS(1) [],
+    GPIO29 OFFSET(29) NUMBITS(1) [],
+    GPIO28 OFFSET(28) NUMBITS(1) [],
+    GPIO27 OFFSET(27) NUMBITS(1) [],
+    GPIO26 OFFSET(26) NUMBITS(1) [],
+    GPIO25 OFFSET(25) NUMBITS(1) [],
+    GPIO24 OFFSET(24) NUMBITS(1) [],
+    GPIO23 OFFSET(23) NUMBITS(1) [],
+    GPIO22 OFFSET(22) NUMBITS(1) [],
+    GPIO21 OFFSET(21) NUMBITS(1) [],
+    GPIO20 OFFSET(20) NUMBITS(1) [],
+    GPIO19 OFFSET(19) NUMBITS(1) [],
+    GPIO18 OFFSET(18) NUMBITS(1) [],
+    GPIO17 OFFSET(17) NUMBITS(1) [],
+    GPIO16 OFFSET(16) NUMBITS(1) [],
+    GPIO15 OFFSET(15) NUMBITS(1) [],
+    GPIO14 OFFSET(14) NUMBITS(1) [],
+    GPIO13 OFFSET(13) NUMBITS(1) [],
+    GPIO12 OFFSET(12) NUMBITS(1) [],
+    GPIO11 OFFSET(11) NUMBITS(1) [],
+    GPIO10 OFFSET(10) NUMBITS(1) [],
+    GPIO09 OFFSET(09) NUMBITS(1) [],
+    GPIO08 OFFSET(08) NUMBITS(1) [],
+    GPIO07 OFFSET(07) NUMBITS(1) [],
+    GPIO06 OFFSET(06) NUMBITS(1) [],
+    GPIO05 OFFSET(05) NUMBITS(1) [],
+    GPIO04 OFFSET(04) NUMBITS(1) [],
+    GPIO03 OFFSET(03) NUMBITS(1) [],
+    GPIO02 OFFSET(02) NUMBITS(1) [],
+    GPIO01 OFFSET(01) NUMBITS(1) [],
+    GPIO00 OFFSET(00) NUMBITS(1) [],
+  ],  
+    IRQSUMMARY_PROC1_SECURE1 [
+    GPIO47 OFFSET(15) NUMBITS(1) [],
+    GPIO46 OFFSET(14) NUMBITS(1) [],
+    GPIO45 OFFSET(13) NUMBITS(1) [],
+    GPIO44 OFFSET(12) NUMBITS(1) [],
+    GPIO43 OFFSET(11) NUMBITS(1) [],
+    GPIO42 OFFSET(10) NUMBITS(1) [],
+    GPIO41 OFFSET(09) NUMBITS(1) [],
+    GPIO40 OFFSET(08) NUMBITS(1) [],
+    GPIO39 OFFSET(07) NUMBITS(1) [],
+    GPIO38 OFFSET(06) NUMBITS(1) [],
+    GPIO37 OFFSET(05) NUMBITS(1) [],
+    GPIO36 OFFSET(04) NUMBITS(1) [],
+    GPIO35 OFFSET(03) NUMBITS(1) [],
+    GPIO34 OFFSET(02) NUMBITS(1) [],
+    GPIO33 OFFSET(01) NUMBITS(1) [],
+    GPIO32 OFFSET(00) NUMBITS(1) [],
+],
+    IRQSUMMARY_PROC1_NSECURE0 [
+    GPIO31 OFFSET(31) NUMBITS(1) [],
+    GPIO30 OFFSET(30) NUMBITS(1) [],
+    GPIO29 OFFSET(29) NUMBITS(1) [],
+    GPIO28 OFFSET(28) NUMBITS(1) [],
+    GPIO27 OFFSET(27) NUMBITS(1) [],
+    GPIO26 OFFSET(26) NUMBITS(1) [],
+    GPIO25 OFFSET(25) NUMBITS(1) [],
+    GPIO24 OFFSET(24) NUMBITS(1) [],
+    GPIO23 OFFSET(23) NUMBITS(1) [],
+    GPIO22 OFFSET(22) NUMBITS(1) [],
+    GPIO21 OFFSET(21) NUMBITS(1) [],
+    GPIO20 OFFSET(20) NUMBITS(1) [],
+    GPIO19 OFFSET(19) NUMBITS(1) [],
+    GPIO18 OFFSET(18) NUMBITS(1) [],
+    GPIO17 OFFSET(17) NUMBITS(1) [],
+    GPIO16 OFFSET(16) NUMBITS(1) [],
+    GPIO15 OFFSET(15) NUMBITS(1) [],
+    GPIO14 OFFSET(14) NUMBITS(1) [],
+    GPIO13 OFFSET(13) NUMBITS(1) [],
+    GPIO12 OFFSET(12) NUMBITS(1) [],
+    GPIO11 OFFSET(11) NUMBITS(1) [],
+    GPIO10 OFFSET(10) NUMBITS(1) [],
+    GPIO09 OFFSET(09) NUMBITS(1) [],
+    GPIO08 OFFSET(08) NUMBITS(1) [],
+    GPIO07 OFFSET(07) NUMBITS(1) [],
+    GPIO06 OFFSET(06) NUMBITS(1) [],
+    GPIO05 OFFSET(05) NUMBITS(1) [],
+    GPIO04 OFFSET(04) NUMBITS(1) [],
+    GPIO03 OFFSET(03) NUMBITS(1) [],
+    GPIO02 OFFSET(02) NUMBITS(1) [],
+    GPIO01 OFFSET(01) NUMBITS(1) [],
+    GPIO00 OFFSET(00) NUMBITS(1) [],
+    ],
+    
+    IRQSUMMARY_PROC1_NSECURE1 [
+    GPIO47 OFFSET(15) NUMBITS(1) [],
+    GPIO46 OFFSET(14) NUMBITS(1) [],
+    GPIO45 OFFSET(13) NUMBITS(1) [],
+    GPIO44 OFFSET(12) NUMBITS(1) [],
+    GPIO43 OFFSET(11) NUMBITS(1) [],
+    GPIO42 OFFSET(10) NUMBITS(1) [],
+    GPIO41 OFFSET(09) NUMBITS(1) [],
+    GPIO40 OFFSET(08) NUMBITS(1) [],
+    GPIO39 OFFSET(07) NUMBITS(1) [],
+    GPIO38 OFFSET(06) NUMBITS(1) [],
+    GPIO37 OFFSET(05) NUMBITS(1) [],
+    GPIO36 OFFSET(04) NUMBITS(1) [],
+    GPIO35 OFFSET(03) NUMBITS(1) [],
+    GPIO34 OFFSET(02) NUMBITS(1) [],
+    GPIO33 OFFSET(01) NUMBITS(1) [],
+    GPIO32 OFFSET(00) NUMBITS(1) [],
+    ]
+
+    IRQSUMMARY_COMA_WAKE_SECURE0 [
+    GPIO31 OFFSET(31) NUMBITS(1) [],
+    GPIO30 OFFSET(30) NUMBITS(1) [],
+    GPIO29 OFFSET(29) NUMBITS(1) [],
+    GPIO28 OFFSET(28) NUMBITS(1) [],
+    GPIO27 OFFSET(27) NUMBITS(1) [],
+    GPIO26 OFFSET(26) NUMBITS(1) [],
+    GPIO25 OFFSET(25) NUMBITS(1) [],
+    GPIO24 OFFSET(24) NUMBITS(1) [],
+    GPIO23 OFFSET(23) NUMBITS(1) [],
+    GPIO22 OFFSET(22) NUMBITS(1) [],
+    GPIO21 OFFSET(21) NUMBITS(1) [],
+    GPIO20 OFFSET(20) NUMBITS(1) [],
+    GPIO19 OFFSET(19) NUMBITS(1) [],
+    GPIO18 OFFSET(18) NUMBITS(1) [],
+    GPIO17 OFFSET(17) NUMBITS(1) [],
+    GPIO16 OFFSET(16) NUMBITS(1) [],
+    GPIO15 OFFSET(15) NUMBITS(1) [],
+    GPIO14 OFFSET(14) NUMBITS(1) [],
+    GPIO13 OFFSET(13) NUMBITS(1) [],
+    GPIO12 OFFSET(12) NUMBITS(1) [],
+    GPIO11 OFFSET(11) NUMBITS(1) [],
+    GPIO10 OFFSET(10) NUMBITS(1) [],
+    GPIO09 OFFSET(09) NUMBITS(1) [],
+    GPIO08 OFFSET(08) NUMBITS(1) [],
+    GPIO07 OFFSET(07) NUMBITS(1) [],
+    GPIO06 OFFSET(06) NUMBITS(1) [],
+    GPIO05 OFFSET(05) NUMBITS(1) [],
+    GPIO04 OFFSET(04) NUMBITS(1) [],
+    GPIO03 OFFSET(03) NUMBITS(1) [],
+    GPIO02 OFFSET(02) NUMBITS(1) [],
+    GPIO01 OFFSET(01) NUMBITS(1) [],
+    GPIO00 OFFSET(00) NUMBITS(1) [],
+    ],
+    IRQSUMMARY_COMA_WAKE_SECURE1 [
+    GPIO47 OFFSET(15) NUMBITS(1) [],
+    GPIO46 OFFSET(14) NUMBITS(1) [],
+    GPIO45 OFFSET(13) NUMBITS(1) [],
+    GPIO44 OFFSET(12) NUMBITS(1) [],
+    GPIO43 OFFSET(11) NUMBITS(1) [],
+    GPIO42 OFFSET(10) NUMBITS(1) [],
+    GPIO41 OFFSET(09) NUMBITS(1) [],
+    GPIO40 OFFSET(08) NUMBITS(1) [],
+    GPIO39 OFFSET(07) NUMBITS(1) [],
+    GPIO38 OFFSET(06) NUMBITS(1) [],
+    GPIO37 OFFSET(05) NUMBITS(1) [],
+    GPIO36 OFFSET(04) NUMBITS(1) [],
+    GPIO35 OFFSET(03) NUMBITS(1) [],
+    GPIO34 OFFSET(02) NUMBITS(1) [],
+    GPIO33 OFFSET(01) NUMBITS(1) [],
+    GPIO32 OFFSET(00) NUMBITS(1) [],
+    ],
+
+    IRQSUMMARY_COMA_WAKE_NSECURE0 [
+    GPIO31 OFFSET(31) NUMBITS(1) [],
+    GPIO30 OFFSET(30) NUMBITS(1) [],
+    GPIO29 OFFSET(29) NUMBITS(1) [],
+    GPIO28 OFFSET(28) NUMBITS(1) [],
+    GPIO27 OFFSET(27) NUMBITS(1) [],
+    GPIO26 OFFSET(26) NUMBITS(1) [],
+    GPIO25 OFFSET(25) NUMBITS(1) [],
+    GPIO24 OFFSET(24) NUMBITS(1) [],
+    GPIO23 OFFSET(23) NUMBITS(1) [],
+    GPIO22 OFFSET(22) NUMBITS(1) [],
+    GPIO21 OFFSET(21) NUMBITS(1) [],
+    GPIO20 OFFSET(20) NUMBITS(1) [],
+    GPIO19 OFFSET(19) NUMBITS(1) [],
+    GPIO18 OFFSET(18) NUMBITS(1) [],
+    GPIO17 OFFSET(17) NUMBITS(1) [],
+    GPIO16 OFFSET(16) NUMBITS(1) [],
+    GPIO15 OFFSET(15) NUMBITS(1) [],
+    GPIO14 OFFSET(14) NUMBITS(1) [],
+    GPIO13 OFFSET(13) NUMBITS(1) [],
+    GPIO12 OFFSET(12) NUMBITS(1) [],
+    GPIO11 OFFSET(11) NUMBITS(1) [],
+    GPIO10 OFFSET(10) NUMBITS(1) [],
+    GPIO09 OFFSET(09) NUMBITS(1) [],
+    GPIO08 OFFSET(08) NUMBITS(1) [],
+    GPIO07 OFFSET(07) NUMBITS(1) [],
+    GPIO06 OFFSET(06) NUMBITS(1) [],
+    GPIO05 OFFSET(05) NUMBITS(1) [],
+    GPIO04 OFFSET(04) NUMBITS(1) [],
+    GPIO03 OFFSET(03) NUMBITS(1) [],
+    GPIO02 OFFSET(02) NUMBITS(1) [],
+    GPIO01 OFFSET(01) NUMBITS(1) [],
+    GPIO00 OFFSET(00) NUMBITS(1) [],
+    ],
+    IRQSUMMARY_COMA_WAKE_NSECURE1 [
+    GPIO47 OFFSET(15) NUMBITS(1) [],
+    GPIO46 OFFSET(14) NUMBITS(1) [],
+    GPIO45 OFFSET(13) NUMBITS(1) [],
+    GPIO44 OFFSET(12) NUMBITS(1) [],
+    GPIO43 OFFSET(11) NUMBITS(1) [],
+    GPIO42 OFFSET(10) NUMBITS(1) [],
+    GPIO41 OFFSET(09) NUMBITS(1) [],
+    GPIO40 OFFSET(08) NUMBITS(1) [],
+    GPIO39 OFFSET(07) NUMBITS(1) [],
+    GPIO38 OFFSET(06) NUMBITS(1) [],
+    GPIO37 OFFSET(05) NUMBITS(1) [],
+    GPIO36 OFFSET(04) NUMBITS(1) [],
+    GPIO35 OFFSET(03) NUMBITS(1) [],
+    GPIO34 OFFSET(02) NUMBITS(1) [],
+    GPIO33 OFFSET(01) NUMBITS(1) [],
+    GPIO32 OFFSET(00) NUMBITS(1) [],
+    ],
+
+INTR_0 [
+        GPIO7_EDGE_HIGH OFFSET(31) NUMBITS(1) [],
+        GPIO7_EDGE_LOW OFFSET(30) NUMBITS(1) [],
+        GPIO7_LEVEL_HIGH OFFSET(29) NUMBITS(1) [],
+        GPIO7_LEVEL_LOW OFFSET(28) NUMBITS(1) [],
+
+        GPIO6_EDGE_HIGH OFFSET(27) NUMBITS(1) [],
+        GPIO6_EDGE_LOW OFFSET(26) NUMBITS(1) [],
+        GPIO6_LEVEL_HIGH OFFSET(25) NUMBITS(1) [],
+        GPIO6_LEVEL_LOW OFFSET(24) NUMBITS(1) [],
+
+        GPIO5_EDGE_HIGH OFFSET(23) NUMBITS(1) [],
+        GPIO5_EDGE_LOW OFFSET(22) NUMBITS(1) [],
+        GPIO5_LEVEL_HIGH OFFSET(21) NUMBITS(1) [],
+        GPIO5_LEVEL_LOW OFFSET(20) NUMBITS(1) [],
+
+        GPIO4_EDGE_HIGH OFFSET(19) NUMBITS(1) [],
+        GPIO4_EDGE_LOW OFFSET(18) NUMBITS(1) [],
+        GPIO4_LEVEL_HIGH OFFSET(17) NUMBITS(1) [],
+        GPIO4_LEVEL_LOW OFFSET(16) NUMBITS(1) [],
+
+        GPIO3_EDGE_HIGH OFFSET(15) NUMBITS(1) [],
+        GPIO3_EDGE_LOW OFFSET(14) NUMBITS(1) [],
+        GPIO3_LEVEL_HIGH OFFSET(13) NUMBITS(1) [],
+        GPIO3_LEVEL_LOW OFFSET(12) NUMBITS(1) [],
+
+        GPIO2_EDGE_HIGH OFFSET(11) NUMBITS(1) [],
+        GPIO2_EDGE_LOW OFFSET(10) NUMBITS(1) [],
+        GPIO2_LEVEL_HIGH OFFSET(9) NUMBITS(1) [],
+        GPIO2_LEVEL_LOW OFFSET(8) NUMBITS(1) [],
+
+        GPIO1_EDGE_HIGH OFFSET(7) NUMBITS(1) [],
+        GPIO1_EDGE_LOW OFFSET(6) NUMBITS(1) [],
+        GPIO1_LEVEL_HIGH OFFSET(5) NUMBITS(1) [],
+        GPIO1_LEVEL_LOW OFFSET(4) NUMBITS(1) [],
+
+        GPIO0_EDGE_HIGH OFFSET(3) NUMBITS(1) [],
+        GPIO0_EDGE_LOW OFFSET(2) NUMBITS(1) [],
+        GPIO0_LEVEL_HIGH OFFSET(1) NUMBITS(1) [],
+        GPIO0_LEVEL_LOW OFFSET(0) NUMBITS(1) []
+],
+INTR_1 [
+        GPIO15_EDGE_HIGH OFFSET(31) NUMBITS(1) [],
+        GPIO15_EDGE_LOW OFFSET(30) NUMBITS(1) [],
+        GPIO15_LEVEL_HIGH OFFSET(29) NUMBITS(1) [],
+        GPIO15_LEVEL_LOW OFFSET(28) NUMBITS(1) [],
+
+        GPIO14_EDGE_HIGH OFFSET(27) NUMBITS(1) [],
+        GPIO14_EDGE_LOW OFFSET(26) NUMBITS(1) [],
+        GPIO14_LEVEL_HIGH OFFSET(25) NUMBITS(1) [],
+        GPIO14_LEVEL_LOW OFFSET(24) NUMBITS(1) [],
+
+        GPIO13_EDGE_HIGH OFFSET(23) NUMBITS(1) [],
+        GPIO13_EDGE_LOW OFFSET(22) NUMBITS(1) [],
+        GPIO13_LEVEL_HIGH OFFSET(21) NUMBITS(1) [],
+        GPIO13_LEVEL_LOW OFFSET(20) NUMBITS(1) [],
+
+        GPIO12_EDGE_HIGH OFFSET(19) NUMBITS(1) [],
+        GPIO12_EDGE_LOW OFFSET(18) NUMBITS(1) [],
+        GPIO12_LEVEL_HIGH OFFSET(17) NUMBITS(1) [],
+        GPIO12_LEVEL_LOW OFFSET(16) NUMBITS(1) [],
+
+        GPIO11_EDGE_HIGH OFFSET(15) NUMBITS(1) [],
+        GPIO11_EDGE_LOW OFFSET(14) NUMBITS(1) [],
+        GPIO11_LEVEL_HIGH OFFSET(13) NUMBITS(1) [],
+        GPIO11_LEVEL_LOW OFFSET(12) NUMBITS(1) [],
+
+        GPIO10_EDGE_HIGH OFFSET(11) NUMBITS(1) [],
+        GPIO10_EDGE_LOW OFFSET(10) NUMBITS(1) [],
+        GPIO10_LEVEL_HIGH OFFSET(9) NUMBITS(1) [],
+        GPIO10_LEVEL_LOW OFFSET(8) NUMBITS(1) [],
+
+        GPIO09_EDGE_HIGH OFFSET(7) NUMBITS(1) [],
+        GPIO09_EDGE_LOW OFFSET(6) NUMBITS(1) [],
+        GPIO09_LEVEL_HIGH OFFSET(5) NUMBITS(1) [],
+        GPIO09_LEVEL_LOW OFFSET(4) NUMBITS(1) [],
+
+        GPIO08_EDGE_HIGH OFFSET(3) NUMBITS(1) [],
+        GPIO08_EDGE_LOW OFFSET(2) NUMBITS(1) [],
+        GPIO08_LEVEL_HIGH OFFSET(1) NUMBITS(1) [],
+        GPIO08_LEVEL_LOW OFFSET(0) NUMBITS(1) []
+],
+INTR_2 [
+        GPIO23_EDGE_HIGH OFFSET(31) NUMBITS(1) [],
+        GPIO23_EDGE_LOW OFFSET(30) NUMBITS(1) [],
+        GPIO23_LEVEL_HIGH OFFSET(29) NUMBITS(1) [],
+        GPIO23_LEVEL_LOW OFFSET(28) NUMBITS(1) [],
+
+        GPIO22_EDGE_HIGH OFFSET(27) NUMBITS(1) [],
+        GPIO22_EDGE_LOW OFFSET(26) NUMBITS(1) [],
+        GPIO22_LEVEL_HIGH OFFSET(25) NUMBITS(1) [],
+        GPIO22_LEVEL_LOW OFFSET(24) NUMBITS(1) [],
+
+        GPIO21_EDGE_HIGH OFFSET(23) NUMBITS(1) [],
+        GPIO21_EDGE_LOW OFFSET(22) NUMBITS(1) [],
+        GPIO21_LEVEL_HIGH OFFSET(21) NUMBITS(1) [],
+        GPIO21_LEVEL_LOW OFFSET(20) NUMBITS(1) [],
+
+        GPIO20_EDGE_HIGH OFFSET(19) NUMBITS(1) [],
+        GPIO20_EDGE_LOW OFFSET(18) NUMBITS(1) [],
+        GPIO20_LEVEL_HIGH OFFSET(17) NUMBITS(1) [],
+        GPIO20_LEVEL_LOW OFFSET(16) NUMBITS(1) [],
+
+        GPIO19_EDGE_HIGH OFFSET(15) NUMBITS(1) [],
+        GPIO19_EDGE_LOW OFFSET(14) NUMBITS(1) [],
+        GPIO19_LEVEL_HIGH OFFSET(13) NUMBITS(1) [],
+        GPIO19_LEVEL_LOW OFFSET(12) NUMBITS(1) [],
+
+        GPIO18_EDGE_HIGH OFFSET(11) NUMBITS(1) [],
+        GPIO18_EDGE_LOW OFFSET(10) NUMBITS(1) [],
+        GPIO18_LEVEL_HIGH OFFSET(9) NUMBITS(1) [],
+        GPIO18_LEVEL_LOW OFFSET(8) NUMBITS(1) [],
+
+        GPIO17_EDGE_HIGH OFFSET(7) NUMBITS(1) [],
+        GPIO17_EDGE_LOW OFFSET(6) NUMBITS(1) [],
+        GPIO17_LEVEL_HIGH OFFSET(5) NUMBITS(1) [],
+        GPIO17_LEVEL_LOW OFFSET(4) NUMBITS(1) [],
+
+        GPIO16_EDGE_HIGH OFFSET(3) NUMBITS(1) [],
+        GPIO16_EDGE_LOW OFFSET(2) NUMBITS(1) [],
+        GPIO16_LEVEL_HIGH OFFSET(1) NUMBITS(1) [],
+        GPIO16_LEVEL_LOW OFFSET(0) NUMBITS(1) []
+],
+
+INTR_3 [
+        GPIO31_EDGE_HIGH OFFSET(31) NUMBITS(1) [],
+        GPIO31_EDGE_LOW OFFSET(30) NUMBITS(1) [],
+        GPIO31_LEVEL_HIGH OFFSET(29) NUMBITS(1) [],
+        GPIO31_LEVEL_LOW OFFSET(28) NUMBITS(1) [],
+
+        GPIO30_EDGE_HIGH OFFSET(27) NUMBITS(1) [],
+        GPIO30_EDGE_LOW OFFSET(26) NUMBITS(1) [],
+        GPIO30_LEVEL_HIGH OFFSET(25) NUMBITS(1) [],
+        GPIO30_LEVEL_LOW OFFSET(24) NUMBITS(1) [],
+
+        GPIO29_EDGE_HIGH OFFSET(23) NUMBITS(1) [],
+        GPIO29_EDGE_LOW OFFSET(22) NUMBITS(1) [],
+        GPIO29_LEVEL_HIGH OFFSET(21) NUMBITS(1) [],
+        GPIO29_LEVEL_LOW OFFSET(20) NUMBITS(1) [],
+
+        GPIO28_EDGE_HIGH OFFSET(19) NUMBITS(1) [],
+        GPIO28_EDGE_LOW OFFSET(18) NUMBITS(1) [],
+        GPIO28_LEVEL_HIGH OFFSET(17) NUMBITS(1) [],
+        GPIO28_LEVEL_LOW OFFSET(16) NUMBITS(1) [],
+
+        GPIO27_EDGE_HIGH OFFSET(15) NUMBITS(1) [],
+        GPIO27_EDGE_LOW OFFSET(14) NUMBITS(1) [],
+        GPIO27_LEVEL_HIGH OFFSET(13) NUMBITS(1) [],
+        GPIO27_LEVEL_LOW OFFSET(12) NUMBITS(1) [],
+
+        GPIO26_EDGE_HIGH OFFSET(11) NUMBITS(1) [],
+        GPIO26_EDGE_LOW OFFSET(10) NUMBITS(1) [],
+        GPIO26_LEVEL_HIGH OFFSET(9) NUMBITS(1) [],
+        GPIO26_LEVEL_LOW OFFSET(8) NUMBITS(1) [],
+
+        GPIO25_EDGE_HIGH OFFSET(7) NUMBITS(1) [],
+        GPIO25_EDGE_LOW OFFSET(6) NUMBITS(1) [],
+        GPIO25_LEVEL_HIGH OFFSET(5) NUMBITS(1) [],
+        GPIO25_LEVEL_LOW OFFSET(4) NUMBITS(1) [],
+
+        GPIO24_EDGE_HIGH OFFSET(3) NUMBITS(1) [],
+        GPIO24_EDGE_LOW OFFSET(2) NUMBITS(1) [],
+        GPIO24_LEVEL_HIGH OFFSET(1) NUMBITS(1) [],
+        GPIO24_LEVEL_LOW OFFSET(0) NUMBITS(1) []
+],
+INTR_4 [
+        GPIO39_EDGE_HIGH OFFSET(31) NUMBITS(1) [],
+        GPIO39_EDGE_LOW OFFSET(30) NUMBITS(1) [],
+        GPIO39_LEVEL_HIGH OFFSET(29) NUMBITS(1) [],
+        GPIO39_LEVEL_LOW OFFSET(28) NUMBITS(1) [],
+
+        GPIO38_EDGE_HIGH OFFSET(27) NUMBITS(1) [],
+        GPIO38_EDGE_LOW OFFSET(26) NUMBITS(1) [],
+        GPIO38_LEVEL_HIGH OFFSET(25) NUMBITS(1) [],
+        GPIO38_LEVEL_LOW OFFSET(24) NUMBITS(1) [],
+
+        GPIO37_EDGE_HIGH OFFSET(23) NUMBITS(1) [],
+        GPIO37_EDGE_LOW OFFSET(22) NUMBITS(1) [],
+        GPIO37_LEVEL_HIGH OFFSET(21) NUMBITS(1) [],
+        GPIO37_LEVEL_LOW OFFSET(20) NUMBITS(1) [],
+
+        GPIO36_EDGE_HIGH OFFSET(19) NUMBITS(1) [],
+        GPIO36_EDGE_LOW OFFSET(18) NUMBITS(1) [],
+        GPIO36_LEVEL_HIGH OFFSET(17) NUMBITS(1) [],
+        GPIO36_LEVEL_LOW OFFSET(16) NUMBITS(1) [],
+
+        GPIO35_EDGE_HIGH OFFSET(15) NUMBITS(1) [],
+        GPIO35_EDGE_LOW OFFSET(14) NUMBITS(1) [],
+        GPIO35_LEVEL_HIGH OFFSET(13) NUMBITS(1) [],
+        GPIO35_LEVEL_LOW OFFSET(12) NUMBITS(1) [],
+
+        GPIO34_EDGE_HIGH OFFSET(11) NUMBITS(1) [],
+        GPIO34_EDGE_LOW OFFSET(10) NUMBITS(1) [],
+        GPIO34_LEVEL_HIGH OFFSET(9) NUMBITS(1) [],
+        GPIO34_LEVEL_LOW OFFSET(8) NUMBITS(1) [],
+
+        GPIO33_EDGE_HIGH OFFSET(7) NUMBITS(1) [],
+        GPIO33_EDGE_LOW OFFSET(6) NUMBITS(1) [],
+        GPIO33_LEVEL_HIGH OFFSET(5) NUMBITS(1) [],
+        GPIO33_LEVEL_LOW OFFSET(4) NUMBITS(1) [],
+
+        GPIO32_EDGE_HIGH OFFSET(3) NUMBITS(1) [],
+        GPIO32_EDGE_LOW OFFSET(2) NUMBITS(1) [],
+        GPIO32_LEVEL_HIGH OFFSET(1) NUMBITS(1) [],
+        GPIO32_LEVEL_LOW OFFSET(0) NUMBITS(1) []
+],
+
+INTR_5 [
+        GPIO47_EDGE_HIGH OFFSET(31) NUMBITS(1) [],
+        GPIO47_EDGE_LOW OFFSET(30) NUMBITS(1) [],
+        GPIO47_LEVEL_HIGH OFFSET(29) NUMBITS(1) [],
+        GPIO47_LEVEL_LOW OFFSET(28) NUMBITS(1) [],
+
+        GPIO46_EDGE_HIGH OFFSET(27) NUMBITS(1) [],
+        GPIO46_EDGE_LOW OFFSET(26) NUMBITS(1) [],
+        GPIO46_LEVEL_HIGH OFFSET(25) NUMBITS(1) [],
+        GPIO46_LEVEL_LOW OFFSET(24) NUMBITS(1) [],
+
+        GPIO45_EDGE_HIGH OFFSET(23) NUMBITS(1) [],
+        GPIO45_EDGE_LOW OFFSET(22) NUMBITS(1) [],
+        GPIO45_LEVEL_HIGH OFFSET(21) NUMBITS(1) [],
+        GPIO45_LEVEL_LOW OFFSET(20) NUMBITS(1) [],
+
+        GPIO44_EDGE_HIGH OFFSET(19) NUMBITS(1) [],
+        GPIO44_EDGE_LOW OFFSET(18) NUMBITS(1) [],
+        GPIO44_LEVEL_HIGH OFFSET(17) NUMBITS(1) [],
+        GPIO44_LEVEL_LOW OFFSET(16) NUMBITS(1) [],
+
+        GPIO43_EDGE_HIGH OFFSET(15) NUMBITS(1) [],
+        GPIO43_EDGE_LOW OFFSET(14) NUMBITS(1) [],
+        GPIO43_LEVEL_HIGH OFFSET(13) NUMBITS(1) [],
+        GPIO43_LEVEL_LOW OFFSET(12) NUMBITS(1) [],
+
+        GPIO42_EDGE_HIGH OFFSET(11) NUMBITS(1) [],
+        GPIO42_EDGE_LOW OFFSET(10) NUMBITS(1) [],
+        GPIO42_LEVEL_HIGH OFFSET(9) NUMBITS(1) [],
+        GPIO42_LEVEL_LOW OFFSET(8) NUMBITS(1) [],
+
+        GPIO41_EDGE_HIGH OFFSET(7) NUMBITS(1) [],
+        GPIO41_EDGE_LOW OFFSET(6) NUMBITS(1) [],
+        GPIO41_LEVEL_HIGH OFFSET(5) NUMBITS(1) [],
+        GPIO41_LEVEL_LOW OFFSET(4) NUMBITS(1) [],
+
+        GPIO42_EDGE_HIGH OFFSET(3) NUMBITS(1) [],
+        GPIO42_EDGE_LOW OFFSET(2) NUMBITS(1) [],
+        GPIO42_LEVEL_HIGH OFFSET(1) NUMBITS(1) [],
+        GPIO42_LEVEL_LOW OFFSET(0) NUMBITS(1) []
+],
+
+    
+
     GPIO_INTxx [
         GPIO7_EDGE_HIGH OFFSET(31) NUMBITS(1) [],
         GPIO7_EDGE_LOW OFFSET(30) NUMBITS(1) [],
@@ -277,13 +960,65 @@ register_bitfields![u32,
         /// FIFO Read
         VALUE OFFSET(0) NUMBITS(32)
     ],
+    GPIO_Proc0_0 [
+        GPIO0 OFFSET(0) NUMBITS(1),
+        GPIO1 OFFSET(1) NUMBITS(1),
+        GPIO2 OFFSET(2) NUMBITS(1),
+        GPIO3 OFFSET(3) NUMBITS(1),
+        GPIO4 OFFSET(4) NUMBITS(1),
+        GPIO5 OFFSET(5) NUMBITS(1),
+        GPIO6 OFFSET(6) NUMBITS(1),
+        GPIO7 OFFSET(7) NUMBITS(1),
+        GPIO8 OFFSET(8) NUMBITS(1),
+        GPIO9 OFFSET(9) NUMBITS(1),
+        GPIO10 OFFSET(10) NUMBITS(1),
+        GPIO11 OFFSET(11) NUMBITS(1),
+        GPIO12 OFFSET(12) NUMBITS(1),
+        GPIO13 OFFSET(13) NUMBITS(1),
+        GPIO14 OFFSET(14) NUMBITS(1),
+        GPIO15 OFFSET(15) NUMBITS(1),
+        GPIO16 OFFSET(16) NUMBITS(1),
+        GPIO17 OFFSET(17) NUMBITS(1),
+        GPIO18 OFFSET(18) NUMBITS(1),
+        GPIO19 OFFSET(19) NUMBITS(1),
+        GPIO20 OFFSET(20) NUMBITS(1),
+        GPIO21 OFFSET(21) NUMBITS(1),
+        GPIO22 OFFSET(22) NUMBITS(1),
+        GPIO23 OFFSET(23) NUMBITS(1),
+        GPIO24 OFFSET(24) NUMBITS(1),
+        GPIO25 OFFSET(25) NUMBITS(1),
+        GPIO26 OFFSET(26) NUMBITS(1),
+        GPIO27 OFFSET(27) NUMBITS(1),
+        GPIO28 OFFSET(28) NUMBITS(1),
+        GPIO29 OFFSET(29) NUMBITS(1),
+        GPIO30 OFFSET(30) NUMBITS(1),
+        GPIO31 OFFSET(31) NUMBITS(1),
+    ],
+    GPIO_Proc0_1 [
+        GPIO32 OFFSET(0) NUMBITS(1),
+        GPIO33 OFFSET(1) NUMBITS(1),
+        GPIO34 OFFSET(2) NUMBITS(1),
+        GPIO35 OFFSET(3) NUMBITS(1),
+        GPIO36 OFFSET(4) NUMBITS(1),
+        GPIO37 OFFSET(5) NUMBITS(1),
+        GPIO38 OFFSET(6) NUMBITS(1),
+        GPIO39 OFFSET(7) NUMBITS(1),
+        GPIO40 OFFSET(8) NUMBITS(1),
+        GPIO41 OFFSET(9) NUMBITS(1),
+        GPIO42 OFFSET(10) NUMBITS(1),
+        GPIO43 OFFSET(11) NUMBITS(1),
+        GPIO44 OFFSET(12) NUMBITS(1),
+        GPIO45 OFFSET(13) NUMBITS(1),
+        GPIO46 OFFSET(14) NUMBITS(1),
+        GPIO47 OFFSET(15) NUMBITS(1),
+    ]
 ];
 
-const GPIO_BASE_ADDRESS: usize = 0x40014000;
+const GPIO_BASE_ADDRESS: usize = 0x40028000;
 const GPIO_BASE: StaticRef<GpioRegisters> =
     unsafe { StaticRef::new(GPIO_BASE_ADDRESS as *const GpioRegisters) };
 
-const GPIO_PAD_BASE_ADDRESS: usize = 0x4001c000;
+const GPIO_PAD_BASE_ADDRESS: usize = 0x40038000;
 const GPIO_PAD_BASE: StaticRef<GpioPadRegisters> =
     unsafe { StaticRef::new(GPIO_PAD_BASE_ADDRESS as *const GpioPadRegisters) };
 
@@ -297,6 +1032,7 @@ pub struct RPPins<'a> {
 }
 
 impl<'a> RPPins<'a> {
+    #[inline(never)]
     pub const fn new() -> Self {
         Self {
             pins: [
@@ -657,6 +1393,7 @@ pub struct SIO {
 }
 
 impl SIO {
+    #[inline(never)]
     pub const fn new() -> Self {
         Self {
             registers: SIO_BASE,
