@@ -6,9 +6,14 @@ MEMORY
 {
   /* uncomment this to boot from RAM */
 /*  reset (rx)  : ORIGIN = 0x20002000, LENGTH = 16K */
+/*
   rom (rx)  : ORIGIN = 0x20040000, LENGTH = 256K
   prog (rx) : ORIGIN = 0x2003C000, LENGTH = 1K
   ram (rwx) : ORIGIN = 0x20000000, LENGTH = 240K 
+*/
+  prog (rx) : ORIGIN = 0x20060000, LENGTH = 128K
+  ram (rwx) : ORIGIN = 0x20000000, LENGTH = 384K 
+
 
   /* boot from Flash */
   /*
@@ -44,4 +49,8 @@ SECTIONS {
 
 
 
+INCLUDE tock_kernel_layout_ram.ld
+
+/*
 INCLUDE tock_kernel_layout.ld
+*/

@@ -78,24 +78,26 @@ register_bitfields![u32,
 ];
 
 const XOSC_BASE: StaticRef<XoscRegisters> =
-    unsafe { StaticRef::new(0x40024000 as *const XoscRegisters) };
+    unsafe { StaticRef::new(0x40048000 as *const XoscRegisters) };
 
 pub struct Xosc {
     registers: StaticRef<XoscRegisters>,
 }
 
 impl Xosc {
-    pub const fn new() -> Self {
-        Self {
+
+    #[inline(never)]
+    pub const fn new() -> Xosc {
+        Xosc {
             registers: XOSC_BASE,
         }
     }
-
+#[inline(never)]
     pub fn init(&self) {
         // there is only one frequency range available
         // RP2040 Manual https://datasheets.raspberrypi.org/rp2040/rp2040-datasheet.pdf section 2.16.7
         self.registers.ctrl.modify(CTRL::FREQ_RANGE::_1_15MHZ);
-        let startup_delay = (((12 * 1000000) / 1000) + 128) / 256;
+        let startup_delay = ((12 * 1000000) / 1000)  / 256;  // 1 ms delay
         self.registers
             .startup
             .modify(STARTUP::DELAY.val(startup_delay));
@@ -103,6 +105,7 @@ impl Xosc {
         // wait for the oscillator to become stable
         while !self.registers.status.is_set(STATUS::STABLE) {}
     }
+
 
     pub fn disable(&self) {
         self.registers.ctrl.modify(CTRL::ENABLE::DISABLE);

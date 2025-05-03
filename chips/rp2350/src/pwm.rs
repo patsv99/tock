@@ -103,12 +103,16 @@ register_bitfields![u32,
             CH4 = 16,
             CH5 = 32,
             CH6 = 64,
-            CH7 = 128
+            CH7 = 128,
+            CH8 = 256,
+            CH9 = 512,
+            CH10 = 1024,
+            CH11 = 2048
         ]
     ]
 ];
 
-const NUMBER_CHANNELS: usize = 8;
+const NUMBER_CHANNELS: usize = 12;
 
 #[repr(C)]
 struct Channel {
@@ -124,6 +128,16 @@ struct Channel {
     top: ReadWrite<u32, TOP::Register>,
 }
 
+#[repr(C)]
+struct PWM_Interrupts {
+    inte: ReadWrite<u32, CH::Register>,
+        // Interrupt force register
+    intf: ReadWrite<u32, CH::Register>,
+        // Interrupt status after masking & forcing
+    ints: ReadOnly<u32, CH::Register>,
+}
+
+
 register_structs! {
     PwmRegisters {
         // Channel registers
@@ -132,16 +146,13 @@ register_structs! {
         // This register aliases the CSR_EN bits for all channels.
         // Writing to this register allows multiple channels to be enabled or disabled
         // or disables simultaneously, so they can run in perfect sync.
-        (0x00A0 => en: ReadWrite<u32, CH::Register>),
+        (0x00f0 => en: ReadWrite<u32, CH::Register>),
         // Raw interrupts register
-        (0x00A4 => intr: WriteOnly<u32, CH::Register>),
+        (0x00f4 => intr: WriteOnly<u32, CH::Register>),
         // Interrupt enable register
-        (0x00A8 => inte: ReadWrite<u32, CH::Register>),
-        // Interrupt force register
-        (0x00AC => intf: ReadWrite<u32, CH::Register>),
-        // Interrupt status after masking & forcing
-        (0x00B0 => ints: ReadOnly<u32, CH::Register>),
-        (0x00B4 => @END),
+        (0x00f8 => intrs: [PWM_Interrupts; 2]),
+
+        (0x0110 => @END),
     }
 }
 
@@ -165,6 +176,21 @@ pub enum DivMode {
     Falling,
 }
 
+#[derive(PartialEq, Eq)]
+pub enum InterruptNumber {
+    IRQ0,
+    IRQ1
+}
+
+impl InterruptNumber {
+    fn as_index(&self) -> usize {
+        match self {
+            InterruptNumber::IRQ0 => 0,
+            InterruptNumber::IRQ1 => 1,
+        }
+    }
+}
+
 /// Channel identifier
 ///
 /// There are a total of 8 eight PWM channels.
@@ -178,6 +204,10 @@ pub enum ChannelNumber {
     Ch5,
     Ch6,
     Ch7,
+    Ch8,
+    Ch9,
+    Ch10,
+    Ch11
 }
 
 const CHANNEL_NUMBERS: [ChannelNumber; NUMBER_CHANNELS] = [
@@ -189,6 +219,12 @@ const CHANNEL_NUMBERS: [ChannelNumber; NUMBER_CHANNELS] = [
     ChannelNumber::Ch5,
     ChannelNumber::Ch6,
     ChannelNumber::Ch7,
+    ChannelNumber::Ch8,
+    ChannelNumber::Ch9,
+    ChannelNumber::Ch10,
+    ChannelNumber::Ch11,
+
+
 ];
 
 /// Each GPIO pin can be configured as a PWM pin.
@@ -235,8 +271,8 @@ const CHANNEL_NUMBERS: [ChannelNumber; NUMBER_CHANNELS] = [
 /// channel will see the logical OR of those two GPIO inputs
 impl From<RPGpio> for ChannelNumber {
     fn from(gpio: RPGpio) -> Self {
-        match gpio as u8 >> 1 & 0b111 {
-            // Because of the bitwise AND, there are only eight possible values
+        match gpio as u8 >> 1 & 0b1111 {
+            // Because of the bitwise AND, there are only 16 possible values
             0 => ChannelNumber::Ch0,
             1 => ChannelNumber::Ch1,
             2 => ChannelNumber::Ch2,
@@ -244,7 +280,12 @@ impl From<RPGpio> for ChannelNumber {
             4 => ChannelNumber::Ch4,
             5 => ChannelNumber::Ch5,
             6 => ChannelNumber::Ch6,
-            _ => ChannelNumber::Ch7,
+            7 => ChannelNumber::Ch7,
+            8 => ChannelNumber::Ch8,
+            9 => ChannelNumber::Ch9,
+            10 => ChannelNumber::Ch10,
+            11 => ChannelNumber::Ch11,
+            _ => ChannelNumber::Ch11,
         }
     }
 }
@@ -314,7 +355,7 @@ impl Default for PwmChannelConfiguration {
 }
 
 const PWM_BASE: StaticRef<PwmRegisters> =
-    unsafe { StaticRef::new(0x40050000 as *const PwmRegisters) };
+    unsafe { StaticRef::new(0x400a8000 as *const PwmRegisters) };
 
 /// Main struct for controlling PWM peripheral
 pub struct Pwm<'a> {
@@ -330,6 +371,7 @@ impl<'a> Pwm<'a> {
     /// + This peripheral depends on the chip's clocks.
     /// + Also, if interrupts are required, then an interrupt handler must be set. Otherwise, all
     /// the interrupts will be ignored.
+    #[inline(never)]
     pub fn new() -> Self {
         let pwm = Self {
             registers: PWM_BASE,
@@ -514,40 +556,41 @@ impl<'a> Pwm<'a> {
     }
 
     // Enable interrupt on the given PWM channel
-    fn enable_interrupt(&self, channel_number: ChannelNumber) {
+    fn enable_interrupt(&self, channel_number: ChannelNumber,intr : InterruptNumber) {
         // What about adding a new method to the register interface which performs
         // a bitwise OR and another one for AND?
-        let mask = self.registers.inte.read(CH::CH);
+        
+        let mask = self.registers.intrs[intr.as_index()].inte.read(CH::CH);
         self.registers
-            .inte
+            .intrs[intr.as_index()].inte
             .modify(CH::CH.val(mask | 1 << channel_number as u32));
     }
-
+#[inline(never)]
     // Disable interrupt on the given PWM channel
-    fn disable_interrupt(&self, channel_number: ChannelNumber) {
-        let mask = self.registers.inte.read(CH::CH);
+    fn disable_interrupt(&self, channel_number: ChannelNumber,intr : InterruptNumber) {
+        let mask = self.registers.intrs[intr.as_index()].inte.read(CH::CH);
         self.registers
-            .inte
+            .intrs[intr.as_index()].inte
             .modify(CH::CH.val(mask & !(1 << channel_number as u32)));
     }
 
     // Enable multiple channel interrupts at once.
     //
     // Bits 0 to 7 ==> enable channel 0-7 interrupts.
-    fn enable_mask_interrupt(&self, mask: u8) {
-        let old_mask = self.registers.inte.read(CH::CH);
+    fn enable_mask_interrupt(&self, mask: u8,intr : InterruptNumber) {
+        let old_mask = self.registers.intrs[intr.as_index()].inte.read(CH::CH);
         self.registers
-            .inte
+            .intrs[intr.as_index()].inte
             .modify(CH::CH.val(old_mask | mask as u32));
     }
 
     // Disable multiple channel interrupts at once.
     //
     // Bits 0 to 7 ==> disable channel 0-7 interrupts.
-    fn disable_mask_interrupt(&self, mask: u8) {
-        let old_mask = self.registers.inte.read(CH::CH);
+    fn disable_mask_interrupt(&self, mask: u8,intr : InterruptNumber) {
+        let old_mask = self.registers.intrs[intr.as_index()].inte.read(CH::CH);
         self.registers
-            .inte
+            .intrs[intr.as_index()].inte
             .modify(CH::CH.val(old_mask & !mask as u32));
     }
 
@@ -559,24 +602,24 @@ impl<'a> Pwm<'a> {
     }
 
     // Force interrupt on the given channel
-    fn force_interrupt(&self, channel_number: ChannelNumber) {
-        let mask = self.registers.intf.read(CH::CH);
+    fn force_interrupt(&self, channel_number: ChannelNumber,intr : InterruptNumber) {
+        let mask = self.registers.intrs[intr.as_index()].intf.read(CH::CH);
         self.registers
-            .intf
+            .intrs[intr.as_index()].intf
             .modify(CH::CH.val(mask | 1 << channel_number as u32));
     }
 
     // Unforce interrupt
-    fn unforce_interrupt(&self, channel_number: ChannelNumber) {
-        let mask = self.registers.intf.read(CH::CH);
+    fn unforce_interrupt(&self, channel_number: ChannelNumber,intr : InterruptNumber) {
+        let mask = self.registers.intrs[intr.as_index()].intf.read(CH::CH);
         self.registers
-            .intf
+            .intrs[intr.as_index()].intf
             .modify(CH::CH.val(mask & !(1 << channel_number as u32)));
     }
 
     // Get interrupt status
-    fn get_interrupt_status(&self, channel_number: ChannelNumber) -> bool {
-        (self.registers.ints.read(CH::CH) & 1 << channel_number as u32) != 0
+    fn get_interrupt_status(&self, channel_number: ChannelNumber,intr : InterruptNumber) -> bool {
+        (self.registers.intrs[intr.as_index()].ints.read(CH::CH) & 1 << channel_number as u32) != 0
     }
 
     // Configure the given channel using the given configuration
@@ -597,7 +640,8 @@ impl<'a> Pwm<'a> {
         for channel_number in CHANNEL_NUMBERS {
             self.configure_channel(channel_number, &default_config);
             self.set_counter(channel_number, 0);
-            self.disable_interrupt(channel_number);
+            self.disable_interrupt(channel_number,InterruptNumber::IRQ0);
+            self.disable_interrupt(channel_number,InterruptNumber::IRQ1);
         }
         self.registers.intr.write(CH::CH.val(0));
     }
@@ -908,6 +952,8 @@ impl hil::pwm::PwmPin for PwmPin<'_> {
 /// ```
 
 pub mod unit_tests {
+    use crate::pwm::InterruptNumber;
+
     use super::{
         debug, hil, ChannelNumber, ChannelPin, DivMode, Pwm, RPGpio, Readable, CC, CH, CSR, CTR,
         DIV, TOP,
@@ -1103,35 +1149,35 @@ pub mod unit_tests {
         pwm.set_enabled(channel_number, false);
 
         // Testing enable_interrupt() and disable_interrupt()
-        pwm.enable_interrupt(channel_number);
+        pwm.enable_interrupt(channel_number,InterruptNumber::IRQ0);
         assert_eq!(
-            pwm.registers.inte.read(CH::CH),
+            pwm.registers.intrs[InterruptNumber::IRQ0.as_index()].inte.read(CH::CH),
             1 << (channel_number as u32)
         );
-        pwm.disable_interrupt(channel_number);
-        assert_eq!(pwm.registers.inte.read(CH::CH), 0);
+        pwm.disable_interrupt(channel_number,InterruptNumber::IRQ0);
+        assert_eq!(pwm.registers.intrs[InterruptNumber::IRQ0.as_index()].inte.read(CH::CH), 0);
 
         // Testing get_interrupt_status()
-        pwm.enable_interrupt(channel_number);
+        pwm.enable_interrupt(channel_number,InterruptNumber::IRQ0);
         pwm.set_counter(channel_number, 12345);
         pwm.advance_count(channel_number);
-        assert!(pwm.get_interrupt_status(channel_number));
-        pwm.disable_interrupt(channel_number);
+        assert!(pwm.get_interrupt_status(channel_number,InterruptNumber::IRQ0));
+        pwm.disable_interrupt(channel_number,InterruptNumber::IRQ0);
 
         // Testing clear_interrupt()
         pwm.clear_interrupt(channel_number);
-        assert!(!pwm.get_interrupt_status(channel_number));
+        assert!(!pwm.get_interrupt_status(channel_number,InterruptNumber::IRQ0));
 
         // Testing force_interrupt(), unforce_interrupt()
-        pwm.force_interrupt(channel_number);
+        pwm.force_interrupt(channel_number,InterruptNumber::IRQ0);
         assert_eq!(
-            pwm.registers.intf.read(CH::CH),
+            pwm.registers.intrs[InterruptNumber::IRQ0.as_index()].intf.read(CH::CH),
             1 << (channel_number as u32)
         );
-        assert!(pwm.get_interrupt_status(channel_number));
-        pwm.unforce_interrupt(channel_number);
-        assert_eq!(pwm.registers.intf.read(CH::CH), 0);
-        assert!(!pwm.get_interrupt_status(channel_number));
+        assert!(pwm.get_interrupt_status(channel_number,InterruptNumber::IRQ0));
+        pwm.unforce_interrupt(channel_number,InterruptNumber::IRQ0);
+        assert_eq!(pwm.registers.intrs[InterruptNumber::IRQ0.as_index()].intf.read(CH::CH), 0);
+        assert!(!pwm.get_interrupt_status(channel_number,InterruptNumber::IRQ0));
 
         debug!("Channel {} works!", channel_number as usize);
     }
@@ -1150,10 +1196,10 @@ pub mod unit_tests {
         ];
 
         // Testing enable_mask_interrupt() and disable_mask_interrupt()
-        pwm.enable_mask_interrupt(u8::MAX);
-        assert_eq!(pwm.registers.inte.read(CH::CH), u8::MAX as u32);
-        pwm.disable_mask_interrupt(u8::MAX);
-        assert_eq!(pwm.registers.inte.read(CH::CH), 0);
+        pwm.enable_mask_interrupt(u8::MAX,InterruptNumber::IRQ0);
+        assert_eq!(pwm.registers.intrs[InterruptNumber::IRQ0.as_index()].inte.read(CH::CH), u8::MAX as u32);
+        pwm.disable_mask_interrupt(u8::MAX,InterruptNumber::IRQ0);
+        assert_eq!(pwm.registers.intrs[InterruptNumber::IRQ0.as_index()].inte.read(CH::CH), 0);
 
         for channel_number in channel_number_list {
             test_channel(pwm, channel_number);

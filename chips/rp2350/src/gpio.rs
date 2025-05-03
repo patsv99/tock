@@ -23,124 +23,106 @@ struct GpioPin {
 }
 #[repr(C)]
 struct GpioProc {
-    enable: [ReadWrite<u32, GPIO_INTxx::Register>; 4],
-    force: [ReadWrite<u32, GPIO_INTxx::Register>; 4],
-    status: [ReadWrite<u32, GPIO_INTxx::Register>; 4],
+    enable: [ReadWrite<u32, GPIO_INTxx::Register>; 6],
+    force: [ReadWrite<u32, GPIO_INTxx::Register>; 6],
+    status: [ReadWrite<u32, GPIO_INTxx::Register>; 6],
 }
-
-#[repr(C)]
-struct IrqSummary {
-    intr0: ReadWrite<u32,INTR_0::Register>,
-    intr1: ReadWrite<u32,INTR_1::Register>,
-    intr2: ReadWrite<u32,INTR_2::Register>,
-    intr3: ReadWrite<u32,INTR_3::Register>,
-    intr4: ReadWrite<u32,INTR_4::Register>,
-    intr5: ReadWrite<u32,INTR_5::Register>,
-}
-
-#[repr(C)]
-struct RawInterrupt {
-    proc_0_0: ReadWrite<u32,GPIO_Proc0_0::Register>,
-    proc_0_1: ReadWrite<u32,GPIO_Proc0_1::Register>,
-}
-
-#[repr(C)]
-struct DormantWakeIntr {
-}
-
 
 register_structs! {
     // GPIO Registers.
     GpioRegisters {
         (0x000 => pin: [GpioPin; 48]),
-    
+        (0x180 => fill: [ReadWrite<u32>; 32]),
+
         /// Raw interrupts
-        ///   (0x030 => clk_ref_ctrl: ReadWrite<u32, CLK_REF_CTRL::Register>),
-        (0x200 => irqsummaryProc0Secure0_ : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE0>), 
-        (0x204 => irqsummaryProc0Secure1_ : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE1>), 
-        (0x208 => irqsummaryProc0NSecure0_ : ReadWrite<u32,IRQSUMMARY_PROC0_NSECURE0>), 
-        (0x20c => irqsummaryProc0NSecure1_ : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE1>), 
-        (0x210 => irqsummaryProc1Secure0_ : ReadWrite<u32,IRQSUMMARY_PROC1_SECURE0>), 
-        (0x214 => irqsummaryProc1Secure1_ : ReadWrite<u32,IRQSUMMARY_PROC1_SECURE1>), 
-        (0x218 => irqsummaryProc1NSecure0_ : ReadWrite<u32,IRQSUMMARY_PROC1_NSECURE0>), 
-        (0x21c => irqsummaryProc1NSecure1_ : ReadWrite<u32,IRQSUMMARY_PROC1_NSECURE1>),
-        (0x220 => irqsummaryComaWakeSecure0_ : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_SECURE0>),
-        (0x224 => irqsummaryComaWakeSecure1_ : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_SECURE1>),
-        (0x228 => irqsummaryComaWakeNSecure0_ : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_NSECURE0>),
-        (0x22c => irqsummaryComaWakeNSecure1_ : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_NSECURE1>),
-        (0x230 => intr0 : ReadWrite<u32,INTR_0>),
-        (0x234 => intr1 : ReadWrite<u32,INTR_1>),
-        (0x238 => intr2 : ReadWrite<u32,INTR_2>),
-        (0x23c => intr3 : ReadWrite<u32,INTR_3>),
-        (0x240 => intr4 : ReadWrite<u32,INTR_4>),
-        (0x244 => intr5 : ReadWrite<u32,INTR_5>),
-
-
-
+        (0x200 => irqsummaryProc0Secure0 : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE0::Register>),
+        (0x204 => irqsummaryProc0Secure1_ : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE1::Register>),
+        (0x208 => irqsummaryProc0NSecure0 : ReadWrite<u32,IRQSUMMARY_PROC0_NSECURE0::Register>),
+        (0x20c => irqsummaryProc0NSecure1 : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE1::Register>),
+        (0x210 => irqsummaryProc1Secure0 : ReadWrite<u32,IRQSUMMARY_PROC1_SECURE0::Register>),
+        (0x214 => irqsummaryProc1Secure1 : ReadWrite<u32,IRQSUMMARY_PROC1_SECURE1::Register>),
+        (0x218 => irqsummaryProc1NSecure0 : ReadWrite<u32,IRQSUMMARY_PROC1_NSECURE0::Register>),
+        (0x21c => irqsummaryProc1NSecure1 : ReadWrite<u32,IRQSUMMARY_PROC1_NSECURE1::Register>),
+        (0x220 => irqsummaryComaWakeSecure0 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_SECURE0::Register>),
+        (0x224 => irqsummaryComaWakeSecure1 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_SECURE1::Register>),
+        (0x228 => irqsummaryComaWakeNSecure0 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_NSECURE0::Register>),
+        (0x22c => irqsummaryComaWakeNSecure1 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_NSECURE1::Register>),
+        (0x230 => intr : [ReadWrite<u32,INTR_0::Register>; 6]),
+        /*
+        // More detailed version
+        (0x230 => intr0 : ReadWrite<u32,INTR_0::Register>),
+        (0x234 => intr1 : ReadWrite<u32,INTR_1::Register>),
+        (0x238 => intr2 : ReadWrite<u32,INTR_2::Register>),
+        (0x23c => intr3 : ReadWrite<u32,INTR_3::Register>),
+        (0x240 => intr4 : ReadWrite<u32,INTR_4::Register>),
+        (0x244 => intr5 : ReadWrite<u32,INTR_5::Register>),
+*/
         /// Interrupts for procs
-        (0x248 => proc0_inte0: ReadWrite<u32,INTR_0>),
-        (0x24c => proc0_inte1: ReadWrite<u32,INTR_1>),
-        (0x250 => proc0_inte2: ReadWrite<u32,INTR_2>),
-        (0x254 => proc0_inte3: ReadWrite<u32,INTR_3>),
-        (0x258 => proc0_inte4: ReadWrite<u32,INTR_4>),
-        (0x25c => proc0_inte5: ReadWrite<u32,INTR_5>),
+        (0x248 => interrupt_proc: [GpioProc; 2]),
 
-        (0x260 => proc0_intf0: ReadWrite<u32,INTR_1>),
-        (0x264 => proc0_intf1: ReadWrite<u32,INTR_1>),
-        (0x268 => proc0_intf2: ReadWrite<u32,INTR_2>),
-        (0x26c => proc0_intf3: ReadWrite<u32,INTR_3>),
-        (0x270 => proc0_intf4: ReadWrite<u32,INTR_4>),
-        (0x274 => proc0_intf5: ReadWrite<u32,INTR_5>),
+/*
+        (0x24c => proc0_inte1: ReadWrite<u32,INTR_1::Register>),
+        (0x250 => proc0_inte2: ReadWrite<u32,INTR_2::Register>),
+        (0x254 => proc0_inte3: ReadWrite<u32,INTR_3::Register>),
+        (0x258 => proc0_inte4: ReadWrite<u32,INTR_4::Register>),
+        (0x25c => proc0_inte5: ReadWrite<u32,INTR_5::Register>),
 
-        (0x278 => proc0_ints0: ReadWrite<u32,INTR_1>),
-        (0x27c => proc0_ints1: ReadWrite<u32,INTR_1>),
-        (0x280 => proc0_ints2: ReadWrite<u32,INTR_2>),
-        (0x284 => proc0_ints3: ReadWrite<u32,INTR_3>),
-        (0x288 => proc0_ints4: ReadWrite<u32,INTR_4>),
-        (0x28c => proc0_ints5: ReadWrite<u32,INTR_5>),
+        (0x260 => proc0_intf0: ReadWrite<u32,INTR_1::Register>),
+        (0x264 => proc0_intf1: ReadWrite<u32,INTR_1::Register>),
+        (0x268 => proc0_intf2: ReadWrite<u32,INTR_2::Register>),
+        (0x26c => proc0_intf3: ReadWrite<u32,INTR_3::Register>),
+        (0x270 => proc0_intf4: ReadWrite<u32,INTR_4::Register>),
+        (0x274 => proc0_intf5: ReadWrite<u32,INTR_5::Register>),
 
-        (0x290 => proc1_inte0: ReadWrite<u32,INTR_0>),
-        (0x294 => proc1_inte1: ReadWrite<u32,INTR_1>),
-        (0x298 => proc1_inte2: ReadWrite<u32,INTR_2>),
-        (0x29c => proc1_inte3: ReadWrite<u32,INTR_3>),
-        (0x2a0 => proc1_inte4: ReadWrite<u32,INTR_4>),
-        (0x2a4 => proc1_inte5: ReadWrite<u32,INTR_5>),
+        (0x278 => proc0_ints0: ReadWrite<u32,INTR_1::Register>),
+        (0x27c => proc0_ints1: ReadWrite<u32,INTR_1::Register>),
+        (0x280 => proc0_ints2: ReadWrite<u32,INTR_2::Register>),
+        (0x284 => proc0_ints3: ReadWrite<u32,INTR_3::Register>),
+        (0x288 => proc0_ints4: ReadWrite<u32,INTR_4::Register>),
+        (0x28c => proc0_ints5: ReadWrite<u32,INTR_5::Register>),
 
-        (0x2a8 => proc1_intf0: ReadWrite<u32,INTR_1>),
-        (0x2ac => proc1_intf1: ReadWrite<u32,INTR_1>),
-        (0x2b0 => proc1_intf2: ReadWrite<u32,INTR_2>),
-        (0x2b4 => proc1_intf3: ReadWrite<u32,INTR_3>),
-        (0x2b8 => proc1_intf4: ReadWrite<u32,INTR_4>),
-        (0x2bc => proc1_intf5: ReadWrite<u32,INTR_5>),
+        (0x290 => proc1_inte0: ReadWrite<u32,INTR_0::Register>),
+        (0x294 => proc1_inte1: ReadWrite<u32,INTR_1::Register>),
+        (0x298 => proc1_inte2: ReadWrite<u32,INTR_2::Register>),
+        (0x29c => proc1_inte3: ReadWrite<u32,INTR_3::Register>),
+        (0x2a0 => proc1_inte4: ReadWrite<u32,INTR_4::Register>),
+        (0x2a4 => proc1_inte5: ReadWrite<u32,INTR_5::Register>),
 
-        (0x2c0 => proc1_ints0: ReadWrite<u32,INTR_1>),
-        (0x2c4 => proc1_ints1: ReadWrite<u32,INTR_1>),
-        (0x2c8 => proc1_ints2: ReadWrite<u32,INTR_2>),
-        (0x2cc => proc1_ints3: ReadWrite<u32,INTR_3>),
-        (0x2d0 => proc1_ints4: ReadWrite<u32,INTR_4>),
-        (0x2d4 => proc1_ints5: ReadWrite<u32,INTR_5>),
+        (0x2a8 => proc1_intf0: ReadWrite<u32,INTR_1::Register>),
+        (0x2ac => proc1_intf1: ReadWrite<u32,INTR_1::Register>),
+        (0x2b0 => proc1_intf2: ReadWrite<u32,INTR_2::Register>),
+        (0x2b4 => proc1_intf3: ReadWrite<u32,INTR_3::Register>),
+        (0x2b8 => proc1_intf4: ReadWrite<u32,INTR_4::Register>),
+        (0x2bc => proc1_intf5: ReadWrite<u32,INTR_5::Register>),
 
+        (0x2c0 => proc1_ints0: ReadWrite<u32,INTR_1::Register>),
+        (0x2c4 => proc1_ints1: ReadWrite<u32,INTR_1::Register>),
+        (0x2c8 => proc1_ints2: ReadWrite<u32,INTR_2::Register>),
+        (0x2cc => proc1_ints3: ReadWrite<u32,INTR_3::Register>),
+        (0x2d0 => proc1_ints4: ReadWrite<u32,INTR_4::Register>),
+        (0x2d4 => proc1_ints5: ReadWrite<u32,INTR_5::Register>),
+*/
         /// Wake
-        (0x2d8 => dormant_inte0: ReadWrite<u32,INTR_0>),
-        (0x2dc => dormant_inte1: ReadWrite<u32,INTR_1>),
-        (0x2e0 => dormant_inte2: ReadWrite<u32,INTR_2>),
-        (0x2e4 => dormant_inte3: ReadWrite<u32,INTR_3>),
-        (0x2e8 => dormant_inte4: ReadWrite<u32,INTR_4>),
-        (0x2ec => dormant_inte5: ReadWrite<u32,INTR_5>),
+        (0x2d8 => dormant_inte0: ReadWrite<u32,INTR_0::Register>),
+        (0x2dc => dormant_inte1: ReadWrite<u32,INTR_1::Register>),
+        (0x2e0 => dormant_inte2: ReadWrite<u32,INTR_2::Register>),
+        (0x2e4 => dormant_inte3: ReadWrite<u32,INTR_3::Register>),
+        (0x2e8 => dormant_inte4: ReadWrite<u32,INTR_4::Register>),
+        (0x2ec => dormant_inte5: ReadWrite<u32,INTR_5::Register>),
 
-        (0x2f0 => dormant_intf0: ReadWrite<u32,INTR_0>),
-        (0x2f4 => dormant_intf1: ReadWrite<u32,INTR_1>),
-        (0x2f8 => dormant_intf2: ReadWrite<u32,INTR_2>),
-        (0x2fc => dormant_intf3: ReadWrite<u32,INTR_3>),
-        (0x300 => dormant_intf4: ReadWrite<u32,INTR_4>),
-        (0x304 => dormant_intf5: ReadWrite<u32,INTR_5>),
+        (0x2f0 => dormant_intf0: ReadWrite<u32,INTR_0::Register>),
+        (0x2f4 => dormant_intf1: ReadWrite<u32,INTR_1::Register>),
+        (0x2f8 => dormant_intf2: ReadWrite<u32,INTR_2::Register>),
+        (0x2fc => dormant_intf3: ReadWrite<u32,INTR_3::Register>),
+        (0x300 => dormant_intf4: ReadWrite<u32,INTR_4::Register>),
+        (0x304 => dormant_intf5: ReadWrite<u32,INTR_5::Register>),
 
-        (0x308 => dormant_ints0: ReadWrite<u32,INTR_0>),
-        (0x30c => dormant_ints1: ReadWrite<u32,INTR_1>),
-        (0x310 => dormant_ints2: ReadWrite<u32,INTR_2>),
-        (0x314 => dormant_ints3: ReadWrite<u32,INTR_3>),
-        (0x318 => dormant_ints4: ReadWrite<u32,INTR_4>),
-        (0x31c => dormant_ints5: ReadWrite<u32,INTR_5>),
+        (0x308 => dormant_ints0: ReadWrite<u32,INTR_0::Register>),
+        (0x30c => dormant_ints1: ReadWrite<u32,INTR_1::Register>),
+        (0x310 => dormant_ints2: ReadWrite<u32,INTR_2::Register>),
+        (0x314 => dormant_ints3: ReadWrite<u32,INTR_3::Register>),
+        (0x318 => dormant_ints4: ReadWrite<u32,INTR_4::Register>),
+        (0x31c => dormant_ints5: ReadWrite<u32,INTR_5::Register>),
 
         /// End
         (0x320 => @END),
@@ -152,9 +134,10 @@ register_structs! {
 
         /// Pads control
         (0x04 => gpio_pad: [ReadWrite<u32, GPIO_PAD::Register>; 48]),
-        (0xc4 => swclk : ReadWrite<u32,SWCLK::Register>)
+        (0xc4 => swclk : ReadWrite<u32,SWCLK::Register>),
+        (0xc8 => swd : ReadWrite<u32,SWD::Register>),
         /// End
-        (0x84 => @END),
+        (0xcc => @END),
     },
     /// SIO Control Registers
     SIORegisters {
@@ -164,32 +147,46 @@ register_structs! {
         /// Input value for GPIO pins
         (0x004 => gpio_in: ReadOnly<u32, GPIO_IN::Register>),
 
-        /// Not used
-        (0x008 => _reserved1),
+
+        (0x008 => gpio_hi_in: ReadOnly<u32,GPIO_HI_IN::Register>),
+        (0x00c => fill: ReadOnly<u32>),
 
         /// GPIO output value
         (0x010 => gpio_out: ReadWrite<u32, GPIO_OUT::Register>),
+        /// GPIO hi output value
+        (0x014 => gpio_hi_out: ReadWrite<u32, GPIO_HI_OUT::Register>),
+
 
         /// GPIO output value set
-        (0x014 => gpio_out_set: ReadWrite<u32, GPIO_OUT_SET::Register>),
+        (0x018 => gpio_out_set: ReadWrite<u32, GPIO_OUT_SET::Register>),
+
+        (0x01c => gpio_hi_out_set: ReadWrite<u32, GPIO_HI_OUT_SET::Register>),
+
 
         /// GPIO output value clear
-        (0x018 => gpio_out_clr: ReadWrite<u32, GPIO_OUT_CLR::Register>),
+        (0x020 => gpio_out_clr: ReadWrite<u32, GPIO_OUT_CLR::Register>),
+
+        (0x024 => gpio_hi_out_clr: ReadWrite<u32, GPIO_HI_OUT_CLR::Register>),
 
         /// GPIO output value XOR
-        (0x01c => gpio_out_xor: ReadWrite<u32, GPIO_OUT_XOR::Register>),
+        (0x028 => gpio_out_xor: ReadWrite<u32, GPIO_OUT_XOR::Register>),
+        (0x02c => gpio_hi_out_xor: ReadWrite<u32, GPIO_HI_OUT_XOR::Register>),
 
         /// GPIO output enable
-        (0x020 => gpio_oe: ReadWrite<u32, GPIO_OE::Register>),
+        (0x030 => gpio_oe: ReadWrite<u32, GPIO_OE::Register>),
+        (0x034 => gpio_hi_oe: ReadWrite<u32, GPIO_HI_OE::Register>),
 
         /// GPIO output enable set
-        (0x024 => gpio_oe_set: ReadWrite<u32, GPIO_OE_SET::Register>),
+        (0x038 => gpio_oe_set: ReadWrite<u32, GPIO_OE_SET::Register>),
+        (0x03c => gpio_hi_oe_set: ReadWrite<u32, GPIO_HI_OE_SET::Register>),
 
         /// GPIO output enable clear
-        (0x028 => gpio_oe_clr: ReadWrite<u32, GPIO_OE_CLR::Register>),
+        (0x040 => gpio_oe_clr: ReadWrite<u32, GPIO_OE_CLR::Register>),
+        (0x044 => gpio_hi_oe_clr: ReadWrite<u32, GPIO_HI_OE_CLR::Register>),
 
-        /// Not used
-        (0x02C => _reserved2),
+        (0x048 => gpio_oe_xor: ReadWrite<u32, GPIO_OE_XOR::Register>),
+        (0x04c => gpio_hi_oe_xor: ReadWrite<u32, GPIO_HI_OE_XOR::Register>),
+
 
         /// FIFO status
         (0x050 => fifo_st: ReadWrite<u32, FIFO_ST::Register>),
@@ -202,26 +199,11 @@ register_structs! {
 
         /// End
         (0x05c => @END),
+        // TODO many registers left...
     }
 }
 
 register_bitfields![u32,
-SWCLK [
-    iso OFFSET(8) NUMBITS(1) [],
-    od OFFSET(7) NUMBITS(1) [],
-    ie OFFSET(8) NUMBITS(1) [],
-    drive OFFSET(4) NUMBITS(2) [
-        2MA = 0,
-        4MA = 1,
-        8MA = 2,
-        12MA = 3,
-    ],
-    pue OFFSET(3) NUMBITS(1) [],
-    pde OFFSET(2) NUMBITS(1) [],
-    schmitt OFFSET(1) NUMBITS(1) [],
-    slewfast OFFSET(0) NUMBITS(1) [],
-],
-
     GPIOx_STATUS [
         /// interrupt to processors, after override is applied
         IRQTOPROC OFFSET(26) NUMBITS(1) [],
@@ -317,7 +299,7 @@ SWCLK [
     GPIO02 OFFSET(02) NUMBITS(1) [],
     GPIO01 OFFSET(01) NUMBITS(1) [],
     GPIO00 OFFSET(00) NUMBITS(1) [],
-  ],  
+  ],
     IRQSUMMARY_PROC0_SECURE1 [
     GPIO47 OFFSET(15) NUMBITS(1) [],
     GPIO46 OFFSET(14) NUMBITS(1) [],
@@ -369,7 +351,7 @@ SWCLK [
     GPIO02 OFFSET(02) NUMBITS(1) [],
     GPIO01 OFFSET(01) NUMBITS(1) [],
     GPIO00 OFFSET(00) NUMBITS(1) [],
-  ],  
+  ],
     IRQSUMMARY_PROC0_NSECURE1 [
     GPIO47 OFFSET(15) NUMBITS(1) [],
     GPIO46 OFFSET(14) NUMBITS(1) [],
@@ -421,7 +403,7 @@ SWCLK [
     GPIO02 OFFSET(02) NUMBITS(1) [],
     GPIO01 OFFSET(01) NUMBITS(1) [],
     GPIO00 OFFSET(00) NUMBITS(1) [],
-  ],  
+  ],
     IRQSUMMARY_PROC1_SECURE1 [
     GPIO47 OFFSET(15) NUMBITS(1) [],
     GPIO46 OFFSET(14) NUMBITS(1) [],
@@ -474,7 +456,7 @@ SWCLK [
     GPIO01 OFFSET(01) NUMBITS(1) [],
     GPIO00 OFFSET(00) NUMBITS(1) [],
     ],
-    
+
     IRQSUMMARY_PROC1_NSECURE1 [
     GPIO47 OFFSET(15) NUMBITS(1) [],
     GPIO46 OFFSET(14) NUMBITS(1) [],
@@ -492,7 +474,7 @@ SWCLK [
     GPIO34 OFFSET(02) NUMBITS(1) [],
     GPIO33 OFFSET(01) NUMBITS(1) [],
     GPIO32 OFFSET(00) NUMBITS(1) [],
-    ]
+    ],
 
     IRQSUMMARY_COMA_WAKE_SECURE0 [
     GPIO31 OFFSET(31) NUMBITS(1) [],
@@ -599,7 +581,6 @@ SWCLK [
     GPIO33 OFFSET(01) NUMBITS(1) [],
     GPIO32 OFFSET(00) NUMBITS(1) [],
     ],
-
 INTR_0 [
         GPIO7_EDGE_HIGH OFFSET(31) NUMBITS(1) [],
         GPIO7_EDGE_LOW OFFSET(30) NUMBITS(1) [],
@@ -843,14 +824,11 @@ INTR_5 [
         GPIO41_LEVEL_HIGH OFFSET(5) NUMBITS(1) [],
         GPIO41_LEVEL_LOW OFFSET(4) NUMBITS(1) [],
 
-        GPIO42_EDGE_HIGH OFFSET(3) NUMBITS(1) [],
-        GPIO42_EDGE_LOW OFFSET(2) NUMBITS(1) [],
-        GPIO42_LEVEL_HIGH OFFSET(1) NUMBITS(1) [],
-        GPIO42_LEVEL_LOW OFFSET(0) NUMBITS(1) []
+        GPIO40_EDGE_HIGH OFFSET(3) NUMBITS(1) [],
+        GPIO40_EDGE_LOW OFFSET(2) NUMBITS(1) [],
+        GPIO40_LEVEL_HIGH OFFSET(1) NUMBITS(1) [],
+        GPIO40_LEVEL_LOW OFFSET(0) NUMBITS(1) []
 ],
-
-    
-
     GPIO_INTxx [
         GPIO7_EDGE_HIGH OFFSET(31) NUMBITS(1) [],
         GPIO7_EDGE_LOW OFFSET(30) NUMBITS(1) [],
@@ -899,6 +877,7 @@ INTR_5 [
         ]
     ],
     GPIO_PAD [
+        ISO OFFSET(8) NUMBITS(1) [],
         OD OFFSET(7) NUMBITS(1) [],
         IE OFFSET(6) NUMBITS(1) [],
         DRIVE OFFSET(4) NUMBITS(2) [],
@@ -908,37 +887,139 @@ INTR_5 [
         SLEWFAST OFFSET(0) NUMBITS(1) []
     ],
     GPIO_IN [
-        ///Input value for GPIO0..29
-        IN OFFSET(0) NUMBITS(30) []
+        ///Input value for GPIO0..31
+        IN OFFSET(0) NUMBITS(32) []
+    ],
+    GPIO_HI_IN [
+        ///Input value for GPIO32..47
+        QSPI_SD OFFSET(28) NUMBITS(4) [],
+
+        QSPI_CSN OFFSET(27) NUMBITS(1) [],
+
+        QSPI_SCK OFFSET(26) NUMBITS(1) [],
+
+        USB_DM OFFSET(25) NUMBITS(1) [],
+
+        USB_DP OFFSET(24) NUMBITS(1) [],
+        GPIO OFFSET(0) NUMBITS(16) [],
     ],
     GPIO_OUT [
         ///Set output level (1/0 → high/low) for GPIO0...29.
-        OUT OFFSET(0) NUMBITS(30) []
+        OUT OFFSET(0) NUMBITS(32) []
     ],
+    GPIO_HI_OUT [
+        ///Input value for GPIO32..47
+        QSPI_SD OFFSET(28) NUMBITS(4) [],
+
+        QSPI_CSN OFFSET(27) NUMBITS(1) [],
+
+        QSPI_SCK OFFSET(26) NUMBITS(1) [],
+
+        USB_DM OFFSET(25) NUMBITS(1) [],
+
+        USB_DP OFFSET(24) NUMBITS(1) [],
+        GPIO OFFSET(0) NUMBITS(16) [],
+    ],
+
     GPIO_OUT_SET [
         ///Perform an atomic bit-set on GPIO_OUT
         OUT OFFSET(0) NUMBITS(30) []
     ],
+    GPIO_HI_OUT_SET [
+        ///Input value for GPIO32..47
+        QSPI_SD OFFSET(28) NUMBITS(4) [],
+        QSPI_CSN OFFSET(27) NUMBITS(1) [],
+        QSPI_SCK OFFSET(26) NUMBITS(1) [],
+        USB_DM OFFSET(25) NUMBITS(1) [],
+        USB_DP OFFSET(24) NUMBITS(1) [],
+        GPIO OFFSET(0) NUMBITS(16) [],
+    ],
+
     GPIO_OUT_CLR [
         ///Perform an atomic bit-clear on GPIO_OUT
         OUT OFFSET(0) NUMBITS(30) []
     ],
+    GPIO_HI_OUT_CLR [
+        ///Input value for GPIO32..47
+        QSPI_SD OFFSET(28) NUMBITS(4) [],
+        QSPI_CSN OFFSET(27) NUMBITS(1) [],
+        QSPI_SCK OFFSET(26) NUMBITS(1) [],
+        USB_DM OFFSET(25) NUMBITS(1) [],
+        USB_DP OFFSET(24) NUMBITS(1) [],
+        GPIO OFFSET(0) NUMBITS(16) [],
+    ],
+
     GPIO_OUT_XOR [
         ///Perform an atomic bitwise XOR on GPIO_OUT
         OUT OFFSET(0) NUMBITS(30) []
     ],
+    GPIO_HI_OUT_XOR [
+        ///Input value for GPIO32..47
+        QSPI_SD OFFSET(28) NUMBITS(4) [],
+        QSPI_CSN OFFSET(27) NUMBITS(1) [],
+        QSPI_SCK OFFSET(26) NUMBITS(1) [],
+        USB_DM OFFSET(25) NUMBITS(1) [],
+        USB_DP OFFSET(24) NUMBITS(1) [],
+        GPIO OFFSET(0) NUMBITS(16) [],
+    ],
+
     GPIO_OE [
         ///Set output enable (1/0 → output/input) for GPIO0...29
         OE OFFSET(0) NUMBITS(30) []
     ],
+    GPIO_HI_OE [
+        ///Input value for GPIO32..47
+        QSPI_SD OFFSET(28) NUMBITS(4) [],
+        QSPI_CSN OFFSET(27) NUMBITS(1) [],
+        QSPI_SCK OFFSET(26) NUMBITS(1) [],
+        USB_DM OFFSET(25) NUMBITS(1) [],
+        USB_DP OFFSET(24) NUMBITS(1) [],
+        GPIO OFFSET(0) NUMBITS(16) [],
+    ],
+
     GPIO_OE_SET [
         ///Perform an atomic bit-set on GPIO_OE
         OE OFFSET(0) NUMBITS(30) []
     ],
+    GPIO_HI_OE_SET [
+        ///Input value for GPIO32..47
+        QSPI_SD OFFSET(28) NUMBITS(4) [],
+        QSPI_CSN OFFSET(27) NUMBITS(1) [],
+        QSPI_SCK OFFSET(26) NUMBITS(1) [],
+        USB_DM OFFSET(25) NUMBITS(1) [],
+        USB_DP OFFSET(24) NUMBITS(1) [],
+        GPIO OFFSET(0) NUMBITS(16) [],
+    ],
+
     GPIO_OE_CLR [
         ///Perform an atomic bit-clear on GPIO_OE
         OE OFFSET(0) NUMBITS(30) []
     ],
+    GPIO_HI_OE_CLR [
+        ///Input value for GPIO32..47
+        QSPI_SD OFFSET(28) NUMBITS(4) [],
+        QSPI_CSN OFFSET(27) NUMBITS(1) [],
+        QSPI_SCK OFFSET(26) NUMBITS(1) [],
+        USB_DM OFFSET(25) NUMBITS(1) [],
+        USB_DP OFFSET(24) NUMBITS(1) [],
+        GPIO OFFSET(0) NUMBITS(16) [],
+    ],
+
+    GPIO_OE_XOR [
+        ///Perform an atomic bit-clear on GPIO_OE
+        OE OFFSET(0) NUMBITS(30) []
+    ],
+    GPIO_HI_OE_XOR [
+        ///Input value for GPIO32..47
+        QSPI_SD OFFSET(28) NUMBITS(4) [],
+        QSPI_CSN OFFSET(27) NUMBITS(1) [],
+        QSPI_SCK OFFSET(26) NUMBITS(1) [],
+        USB_DM OFFSET(25) NUMBITS(1) [],
+        USB_DP OFFSET(24) NUMBITS(1) [],
+        GPIO OFFSET(0) NUMBITS(16) [],
+    ],
+
+
     CPUID [
         VALUE OFFSET(0) NUMBITS (32)
     ],
@@ -1011,7 +1092,40 @@ INTR_5 [
         GPIO45 OFFSET(13) NUMBITS(1),
         GPIO46 OFFSET(14) NUMBITS(1),
         GPIO47 OFFSET(15) NUMBITS(1),
-    ]
+    ],
+    SWCLK [
+    iso OFFSET(8) NUMBITS(1) [],
+    od OFFSET(7) NUMBITS(1) [],
+    ie OFFSET(8) NUMBITS(1) [],
+    drive OFFSET(4) NUMBITS(2) [
+        S2MA = 0,
+        S4MA = 1,
+        S8MA = 2,
+        S12MA = 3,
+    ],
+    pue OFFSET(3) NUMBITS(1) [],
+    pde OFFSET(2) NUMBITS(1) [],
+    schmitt OFFSET(1) NUMBITS(1) [],
+    slewfast OFFSET(0) NUMBITS(1) [],
+],
+SWD [
+    iso OFFSET(8) NUMBITS(1) [],
+    od OFFSET(7) NUMBITS(1) [],
+    ie OFFSET(8) NUMBITS(1) [],
+    drive OFFSET(4) NUMBITS(2) [
+        S2MA = 0,
+        S4MA = 1,
+        S8MA = 2,
+        S12MA = 3,
+    ],
+    pue OFFSET(3) NUMBITS(1) [],
+    pde OFFSET(2) NUMBITS(1) [],
+    schmitt OFFSET(1) NUMBITS(1) [],
+    slewfast OFFSET(0) NUMBITS(1) [],
+],
+
+
+
 ];
 
 const GPIO_BASE_ADDRESS: usize = 0x40028000;
@@ -1027,7 +1141,7 @@ const SIO_BASE: StaticRef<SIORegisters> =
     unsafe { StaticRef::new(SIO_BASE_ADDRESS as *const SIORegisters) };
 
 pub struct RPPins<'a> {
-    pub pins: [RPGpioPin<'a>; 30],
+    pub pins: [RPGpioPin<'a>; 48],
     gpio_registers: StaticRef<GpioRegisters>,
 }
 
@@ -1066,6 +1180,24 @@ impl<'a> RPPins<'a> {
                 RPGpioPin::new(RPGpio::GPIO27),
                 RPGpioPin::new(RPGpio::GPIO28),
                 RPGpioPin::new(RPGpio::GPIO29),
+                RPGpioPin::new(RPGpio::GPIO30),
+                RPGpioPin::new(RPGpio::GPIO31),
+                RPGpioPin::new(RPGpio::GPIO32),
+                RPGpioPin::new(RPGpio::GPIO33),
+                RPGpioPin::new(RPGpio::GPIO34),
+                RPGpioPin::new(RPGpio::GPIO35),
+                RPGpioPin::new(RPGpio::GPIO36),
+                RPGpioPin::new(RPGpio::GPIO37),
+                RPGpioPin::new(RPGpio::GPIO38),
+                RPGpioPin::new(RPGpio::GPIO39),
+                RPGpioPin::new(RPGpio::GPIO40),
+                RPGpioPin::new(RPGpio::GPIO41),
+                RPGpioPin::new(RPGpio::GPIO42),
+                RPGpioPin::new(RPGpio::GPIO43),
+                RPGpioPin::new(RPGpio::GPIO44),
+                RPGpioPin::new(RPGpio::GPIO45),
+                RPGpioPin::new(RPGpio::GPIO46),
+                RPGpioPin::new(RPGpio::GPIO47),
             ],
             gpio_registers: GPIO_BASE,
         }
@@ -1105,7 +1237,9 @@ enum_from_primitive! {
         GPIO0=0, GPIO1=1, GPIO2=2, GPIO3=3, GPIO4=4, GPIO5=5, GPIO6=6, GPIO7=7,
         GPIO8=8, GPIO9=9, GPIO10=10, GPIO11=11, GPIO12=12, GPIO13=13, GPIO14=14, GPIO15=15,
         GPIO16=16, GPIO17=17, GPIO18=18, GPIO19=19, GPIO20=20, GPIO21=21, GPIO22=22, GPIO23=23,
-        GPIO24=24, GPIO25=25, GPIO26=26, GPIO27=27, GPIO28=28, GPIO29=29
+        GPIO24=24, GPIO25=25, GPIO26=26, GPIO27=27, GPIO28=28, GPIO29=29,
+        GPIO30=30,GPIO31=31,GPIO32=32,GPIO33=33,GPIO34=34,GPIO35=35,GPIO36=36,GPIO37=37,GPIO38=38,GPIO39=39,
+        GPIO40=40,GPIO41=41,GPIO42=42,GPIO43=43,GPIO44=44,GPIO45=45,GPIO46=46,GPIO47=47
     }
 }
 enum_from_primitive! {
@@ -1190,11 +1324,13 @@ impl<'a> RPGpioPin<'a> {
     }
 
     pub fn activate_pads(&self) {
-        self.gpio_pad_registers.gpio_pad[self.pin].modify(GPIO_PAD::OD::CLEAR + GPIO_PAD::IE::SET);
+        self.gpio_pad_registers.gpio_pad[self.pin]
+            .modify(GPIO_PAD::OD::CLEAR + GPIO_PAD::ISO::CLEAR + GPIO_PAD::IE::SET);
     }
 
     pub fn deactivate_pads(&self) {
-        self.gpio_pad_registers.gpio_pad[self.pin].modify(GPIO_PAD::OD::SET + GPIO_PAD::IE::CLEAR);
+        self.gpio_pad_registers.gpio_pad[self.pin]
+            .modify(GPIO_PAD::OD::SET + GPIO_PAD::ISO::SET + GPIO_PAD::IE::CLEAR);
     }
 
     pub fn handle_interrupt(&self) {
@@ -1415,6 +1551,10 @@ impl SIO {
                 }
             }
         }
+    }
+
+    pub fn handle_fifo_interrupt(&self) {
+        let st = self.registers.fifo_st.get();
     }
 
     pub fn get_processor(&self) -> Processor {

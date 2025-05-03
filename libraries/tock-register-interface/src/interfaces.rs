@@ -357,7 +357,7 @@ where
     type T = T;
     type R = R;
 
-    #[inline]
+    #[inline(never)]
     fn modify(&self, field: FieldValue<Self::T, Self::R>) {
         self.set(field.modify(self.get()));
     }

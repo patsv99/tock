@@ -42,7 +42,7 @@ CS [
     /// Otherwise, the ADC will cycle through each enabled channel in a
     /// The first channel to be sampled will be the one currently indica
     /// AINSEL will be updated after each conversion with the newly-sele
-    RROBIN OFFSET(16) NUMBITS(5) [],
+    RROBIN OFFSET(16) NUMBITS(9) [],
     /// Select analog mux input. Updated automatically in round-robin mode.
     AINSEL OFFSET(12) NUMBITS(3) [],
     /// Some past ADC conversion encountered an error. Write 1 to clear.
@@ -133,6 +133,10 @@ pub enum Channel {
     Channel2 = 0b00010,
     Channel3 = 0b00011,
     Channel4 = 0b00100,
+    Channel5 = 0b00101,
+    Channel6 = 0b00110,
+    Channel7 = 0b00111,
+ 
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -149,6 +153,7 @@ pub struct Adc<'a> {
 }
 
 impl Adc<'_> {
+    #[inline(never)]
     pub const fn new() -> Self {
         Self {
             registers: ADC_BASE,
@@ -157,7 +162,7 @@ impl Adc<'_> {
             client: OptionalCell::empty(),
         }
     }
-
+    #[inline(never)]
     pub fn init(&self) {
         self.registers.cs.modify(CS::EN::SET);
         while !self.registers.cs.is_set(CS::READY) {}

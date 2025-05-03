@@ -226,8 +226,8 @@ register_bitfields! [u32,
 
 const INSTANCES: [StaticRef<I2cRegisters>; 2] = unsafe {
     [
-        StaticRef::new(0x40044000 as *const I2cRegisters),
-        StaticRef::new(0x40048000 as *const I2cRegisters),
+        StaticRef::new(0x40090000 as *const I2cRegisters),
+        StaticRef::new(0x40098000 as *const I2cRegisters),
     ]
 };
 
@@ -279,11 +279,11 @@ impl<'a> I2c<'a, '_> {
             abort_reason: OptionalCell::empty(),
         }
     }
-
+    #[inline(never)]
     pub fn new_i2c0() -> Self {
         I2c::new(0)
     }
-
+    #[inline(never)]
     pub fn new_i2c1() -> Self {
         I2c::new(1)
     }

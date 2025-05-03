@@ -110,6 +110,7 @@ pub struct Watchdog<'a> {
 }
 
 impl<'a> Watchdog<'a> {
+    #[inline(never)]
     pub const fn new() -> Watchdog<'a> {
         Watchdog {
             registers: WATCHDOG_BASE,

@@ -9,8 +9,9 @@
             "target": "localhost:2331",
             "remote": true,
             "cwd": "${workspaceRoot}",
-            "gdbpath": "arm-none-eabi-gdb",
-            "autorun": [
+            "gdbpath": "/home/patsv/Downloads/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-gdb",
+
+"autorun": [
                 "monitor reset",
                 "monitor speed auto",
                 "b initialize_ram_jump_to_main"
@@ -24,47 +25,57 @@
             "executable": "${workspaceRoot}/target/thumbv7em-none-eabi/debug/msp-exp432p401r.elf",
             "cwd": "${workspaceRoot}",
             "svdFile": "${workspaceRoot}/boards/msp_exp432p401r/msp432.svd",
-            "runToEntryPoint": "false",
+            "runToEntryPoint": "true",
             "configFiles": [
                 "${workspaceRoot}/boards/msp_exp432p401r/openocd.cfg",
             ]
         },
         {
-            "cwd": "${workspaceRoot}",
-  //          "executable": "${command:cmake.launchTargetPath}",
-            "executable": "${workspaceRoot}/target/thumbv8m.main-none-eabi/release/raspberry_pi_pico2.elf",
             "name": "Debug with OpenOCD",
+            "cwd": "${workspaceRoot}",
+            "executable": "${workspaceRoot}/target/thumbv8m.main-none-eabi/release/raspberry_pi_pico2.elf",
+          //  "executable": "${workspaceRoot}/target/thumbv8m.main-none-eabi/debug/raspberry_pi_pico2.elf",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
-            "showDevDebugOutput": "none",
+            "showDevDebugOutput": "raw",
+            "runToEntryPoint": "true",
             "debuggerArgs": [
                 
             ],
-            "runToEntryPoint": "true",
-            "gdbPath": "/tools/Xilinx/Vitis/2022.2/gnu/aarch32/lin/gcc-arm-none-eabi/bin/arm-none-eabi-gdb",
-           
-      "openOCDLaunchCommands": [
-        "adapter speed 5000",
-        "init;",
+        
+            "gdbPath": "/home/patsv/Downloads/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-gdb",
+            "openOCDLaunchCommands": [
+            "adapter speed 5000",
+            "init;",
+        
 //        "rp2350.dap.core1 cortex_m reset_config sysresetreq;",
 //        "rp2350.dap.core0 cortex_m reset_config sysresetreq;",
 //        "rp2350.dap.core1  arp_reset assert 0 ;",
 //        "rp2350.dap.core0 arp_reset assert 0 ;",
 //        " rp2350.dap.core0 arp_halt;", 
 //        "rp2350.dap.core1 arp_halt;"
-      ],
-      "presentation": {
-        "hidden": false,
-        "group": "",
-        "order": 1
-      },
-      "breakAfterReset": true,
-      "postLaunchCommands": [
+            ],
+            "presentation": {
+            "hidden": false,
+            "group": "",
+            "order": 1
+        },
+        "breakAfterReset": true,
+        "postLaunchCommands": [
+//        "set substitute-path  /rustc/827a0d638dabc9a22c56f9c37a557568f86ac76c/ /home/patsv/.rustup/toolchains/nightly-2025-03-14-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/",
+        "set substitute-path  /rustc/827a0d638dabc9a22c56f9c37a557568f86ac76c/ /home/patsv/.rustup/toolchains/nightly-2025-02-19-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/",
+
+//        "set substitute-path  /rustc/827a0d638dabc9a22c56f9c37a557568f86ac76c/ /home/patsv/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/",
+
+"dir ~/.cargo/registry/src/",
+        "dir ~/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust",
+
         "file /home/patsv/src/tock/target/thumbv8m.main-none-eabi/release/raspberry_pi_pico2.elf",
-        "load /home/patsv/src/tock/target/thumbv8m.main-none-eabi/release/raspberry_pi_pico2.elf"
-    ],
-      "device": "RP2350",
+        "load /home/patsv/src/tock/target/thumbv8m.main-none-eabi/release/raspberry_pi_pico2.elf",
+        
+        ],
+            "device": "RP2350",
             "configFiles": [
                 "interface/cmsis-dap.cfg",
                 "target/rp2350_eris.cfg"

@@ -231,10 +231,10 @@ register_bitfields![u32,
 ];
 
 const SPI0_BASE: StaticRef<SpiRegisters> =
-    unsafe { StaticRef::new(0x4003C000 as *const SpiRegisters) };
+    unsafe { StaticRef::new(0x40080000 as *const SpiRegisters) };
 
 const SPI1_BASE: StaticRef<SpiRegisters> =
-    unsafe { StaticRef::new(0x40040000 as *const SpiRegisters) };
+    unsafe { StaticRef::new(0x40088000 as *const SpiRegisters) };
 
 pub struct Spi<'a> {
     registers: StaticRef<SpiRegisters>,
@@ -254,6 +254,7 @@ pub struct Spi<'a> {
 }
 
 impl<'a> Spi<'a> {
+    #[inline(never)]
     pub fn new_spi0() -> Self {
         Self {
             registers: SPI0_BASE,

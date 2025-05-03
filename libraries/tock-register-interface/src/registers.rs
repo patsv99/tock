@@ -51,7 +51,7 @@ impl<T: UIntLike, R: RegisterLongName> Readable for ReadWrite<T, R> {
     type T = T;
     type R = R;
 
-    #[inline]
+    #[inline(never)]
     fn get(&self) -> Self::T {
         unsafe { ::core::ptr::read_volatile(self.value.get()) }
     }
@@ -60,7 +60,7 @@ impl<T: UIntLike, R: RegisterLongName> Writeable for ReadWrite<T, R> {
     type T = T;
     type R = R;
 
-    #[inline]
+    #[inline(never)]
     fn set(&self, value: T) {
         unsafe { ::core::ptr::write_volatile(self.value.get(), value) }
     }

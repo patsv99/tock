@@ -23,10 +23,12 @@ pub struct Writer {
 }
 
 impl Writer {
+    #[inline(never)]
     pub fn set_uart(&self, uart: &'static Uart) {
         self.uart.set(uart);
     }
 
+    #[inline(never)]
     fn configure_uart(&self, uart: &Uart) {
         if !uart.is_configured() {
             let parameters = Parameters {

@@ -48,8 +48,8 @@ impl<'a, I: InterruptService> Rp2350<'a, I> {
             userspace_kernel_boundary: cortexm33::syscall::SysCall::new(),
             interrupt_service,
             sio,
-            processor0_interrupt_mask: interrupt_mask!(interrupts::SIO_IRQ_PROC1),
-            processor1_interrupt_mask: interrupt_mask!(interrupts::SIO_IRQ_PROC0),
+            processor0_interrupt_mask: interrupt_mask!(interrupts::PROC0_IRQ_CTI),
+            processor1_interrupt_mask: interrupt_mask!(interrupts::PROC1_IRQ_CTI),
         }
     }
 }
@@ -57,7 +57,7 @@ impl<'a, I: InterruptService> Rp2350<'a, I> {
 impl<I: InterruptService> Chip for Rp2350<'_, I> {
     type MPU = cortexm33::mpu::MPU;
     type UserspaceKernelBoundary = cortexm33::syscall::SysCall;
-
+#[inline(never)]
     fn service_pending_interrupts(&self) {
         unsafe {
             let mask = match self.sio.get_processor() {
@@ -137,10 +137,11 @@ pub struct Rp2350DefaultPeripherals<'a> {
     pub usb: usb::UsbCtrl<'a>,
     pub watchdog: Watchdog<'a>,
     pub xosc: Xosc,
-//    pub rtc: rtc::Rtc<'a>,
+    //    pub rtc: rtc::Rtc<'a>,
 }
 
 impl Rp2350DefaultPeripherals<'_> {
+    #[inline(never)]
     pub fn new() -> Self {
         Self {
             adc: adc::Adc::new(),
@@ -160,7 +161,7 @@ impl Rp2350DefaultPeripherals<'_> {
             usb: usb::UsbCtrl::new(),
             watchdog: Watchdog::new(),
             xosc: Xosc::new(),
-//            rtc: rtc::Rtc::new(),
+            //            rtc: rtc::Rtc::new(),
         }
     }
 
@@ -171,29 +172,30 @@ impl Rp2350DefaultPeripherals<'_> {
         self.uart0.set_clocks(&self.clocks);
         kernel::deferred_call::DeferredCallClient::register(&self.uart0);
         kernel::deferred_call::DeferredCallClient::register(&self.uart1);
-//        kernel::deferred_call::DeferredCallClient::register(&self.rtc);
+        //        kernel::deferred_call::DeferredCallClient::register(&self.rtc);
         self.i2c0.resolve_dependencies(&self.clocks, &self.resets);
         self.usb.set_gpio(self.pins.get_pin(RPGpio::GPIO15));
-//        self.rtc.set_clocks(&self.clocks);
+        //        self.rtc.set_clocks(&self.clocks);
     }
 }
-
 impl InterruptService for Rp2350DefaultPeripherals<'_> {
+    #[inline(never)]
+
     unsafe fn service_interrupt(&self, interrupt: u32) -> bool {
         match interrupt {
             interrupts::PIO0_IRQ_0 => {
                 self.pio0.handle_interrupt();
                 true
             }
-            interrupts::TIMER_IRQ_0 => {
+            interrupts::TIMER0_IRQ_0 => {
                 self.timer.handle_interrupt();
                 true
             }
-            interrupts::SIO_IRQ_PROC0 => {
+            interrupts::PROC0_IRQ_CTI => {
                 self.sio.handle_proc_interrupt(Processor::Processor0);
                 true
             }
-            interrupts::SIO_IRQ_PROC1 => {
+            interrupts::PROC1_IRQ_CTI => {
                 self.sio.handle_proc_interrupt(Processor::Processor1);
                 true
             }
@@ -222,11 +224,15 @@ impl InterruptService for Rp2350DefaultPeripherals<'_> {
                 self.i2c0.handle_interrupt();
                 true
             }
-            interrupts::PWM_IRQ_WRAP => {
+            interrupts::PWM_IRQ_WRAP_0 => {
                 // As the PWM HIL doesn't provide any support for interrupts, they are
                 // simply ignored.
                 //
                 // Note that PWM interrupts are raised only during unit tests.
+                true
+            }
+            interrupts::SIO_IRQ_FIFO => {
+                self.sio.handle_fifo_interrupt();
                 true
             }
             _ => false,

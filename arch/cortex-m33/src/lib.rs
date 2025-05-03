@@ -60,3 +60,4 @@ impl cortexm::CortexMVariant for CortexM33 {
 pub mod syscall {
     pub type SysCall = cortexm::syscall::SysCall<crate::CortexM33>;
 }
+

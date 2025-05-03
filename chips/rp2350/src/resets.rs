@@ -19,50 +19,52 @@ register_structs! {
 }
 register_bitfields![u32,
     RESET [
+        usbctrl OFFSET(28) NUMBITS(1) [],
 
-        usbctrl OFFSET(24) NUMBITS(1) [],
+        uart1 OFFSET(27) NUMBITS(1) [],
+        uart0 OFFSET(26) NUMBITS(1) [],
+        trng OFFSET(25) NUMBITS(1) [],
+        timer1 OFFSET(24) NUMBITS(1) [],
+        timer0 OFFSET(23) NUMBITS(1) [],
 
-        uart1 OFFSET(23) NUMBITS(1) [],
+        tbman OFFSET(22) NUMBITS(1) [],
 
-        uart0 OFFSET(22) NUMBITS(1) [],
+        sysinfo OFFSET(21) NUMBITS(1) [],
 
-        timer OFFSET(21) NUMBITS(1) [],
+        syscfg OFFSET(20) NUMBITS(1) [],
 
-        tbman OFFSET(20) NUMBITS(1) [],
+        spi1 OFFSET(19) NUMBITS(1) [],
 
-        sysinfo OFFSET(19) NUMBITS(1) [],
+        spi0 OFFSET(18) NUMBITS(1) [],
 
-        syscfg OFFSET(18) NUMBITS(1) [],
+        sha256 OFFSET(17) NUMBITS(1) [],
+        pwm OFFSET(16) NUMBITS(1) [],
 
-        spi1 OFFSET(17) NUMBITS(1) [],
+        pll_usb OFFSET(15) NUMBITS(1) [],
 
-        spi0 OFFSET(16) NUMBITS(1) [],
+        pll_sys OFFSET(14) NUMBITS(1) [],
 
-        rtc OFFSET(15) NUMBITS(1) [],
+        pio2 OFFSET(13) NUMBITS(1) [],
 
-        pwm OFFSET(14) NUMBITS(1) [],
+        pio1 OFFSET(12) NUMBITS(1) [],
 
-        pll_usb OFFSET(13) NUMBITS(1) [],
+        pio0 OFFSET(11) NUMBITS(1) [],
 
-        pll_sys OFFSET(12) NUMBITS(1) [],
+        pads_qspi OFFSET(10) NUMBITS(1) [],
 
-        pio1 OFFSET(11) NUMBITS(1) [],
+        pads_bank0 OFFSET(9) NUMBITS(1) [],
 
-        pio0 OFFSET(10) NUMBITS(1) [],
+        jtag OFFSET(8) NUMBITS(1) [],
 
-        pads_qspi OFFSET(9) NUMBITS(1) [],
+        io_qspi OFFSET(7) NUMBITS(1) [],
 
-        pads_bank0 OFFSET(8) NUMBITS(1) [],
+        io_bank0 OFFSET(6) NUMBITS(1) [],
 
-        jtag OFFSET(7) NUMBITS(1) [],
+        i2c1 OFFSET(5) NUMBITS(1) [],
 
-        io_qspi OFFSET(6) NUMBITS(1) [],
+        i2c0 OFFSET(4) NUMBITS(1) [],
 
-        io_bank0 OFFSET(5) NUMBITS(1) [],
-
-        i2c1 OFFSET(4) NUMBITS(1) [],
-
-        i2c0 OFFSET(3) NUMBITS(1) [],
+        hstx OFFSET(3) NUMBITS(1) [],
 
         dma OFFSET(2) NUMBITS(1) [],
 
@@ -71,50 +73,52 @@ register_bitfields![u32,
         adc OFFSET(0) NUMBITS(1) []
     ],
     WDSEL [
+        usbctrl OFFSET(28) NUMBITS(1) [],
 
-        usbctrl OFFSET(24) NUMBITS(1) [],
+        uart1 OFFSET(27) NUMBITS(1) [],
+        uart0 OFFSET(26) NUMBITS(1) [],
+        trng OFFSET(25) NUMBITS(1) [],
+        timer1 OFFSET(24) NUMBITS(1) [],
+        timer0 OFFSET(23) NUMBITS(1) [],
 
-        uart1 OFFSET(23) NUMBITS(1) [],
+        tbman OFFSET(22) NUMBITS(1) [],
 
-        uart0 OFFSET(22) NUMBITS(1) [],
+        sysinfo OFFSET(21) NUMBITS(1) [],
 
-        timer OFFSET(21) NUMBITS(1) [],
+        syscfg OFFSET(20) NUMBITS(1) [],
 
-        tbman OFFSET(20) NUMBITS(1) [],
+        spi1 OFFSET(19) NUMBITS(1) [],
 
-        sysinfo OFFSET(19) NUMBITS(1) [],
+        spi0 OFFSET(18) NUMBITS(1) [],
 
-        syscfg OFFSET(18) NUMBITS(1) [],
+        sha256 OFFSET(17) NUMBITS(1) [],
+        pwm OFFSET(16) NUMBITS(1) [],
 
-        spi1 OFFSET(17) NUMBITS(1) [],
+        pll_usb OFFSET(15) NUMBITS(1) [],
 
-        spi0 OFFSET(16) NUMBITS(1) [],
+        pll_sys OFFSET(14) NUMBITS(1) [],
 
-        rtc OFFSET(15) NUMBITS(1) [],
+        pio2 OFFSET(13) NUMBITS(1) [],
 
-        pwm OFFSET(14) NUMBITS(1) [],
+        pio1 OFFSET(12) NUMBITS(1) [],
 
-        pll_usb OFFSET(13) NUMBITS(1) [],
+        pio0 OFFSET(11) NUMBITS(1) [],
 
-        pll_sys OFFSET(12) NUMBITS(1) [],
+        pads_qspi OFFSET(10) NUMBITS(1) [],
 
-        pio1 OFFSET(11) NUMBITS(1) [],
+        pads_bank0 OFFSET(9) NUMBITS(1) [],
 
-        pio0 OFFSET(10) NUMBITS(1) [],
+        jtag OFFSET(8) NUMBITS(1) [],
 
-        pads_qspi OFFSET(9) NUMBITS(1) [],
+        io_qspi OFFSET(7) NUMBITS(1) [],
 
-        pads_bank0 OFFSET(8) NUMBITS(1) [],
+        io_bank0 OFFSET(6) NUMBITS(1) [],
 
-        jtag OFFSET(7) NUMBITS(1) [],
+        i2c1 OFFSET(5) NUMBITS(1) [],
 
-        io_qspi OFFSET(6) NUMBITS(1) [],
+        i2c0 OFFSET(4) NUMBITS(1) [],
 
-        io_bank0 OFFSET(5) NUMBITS(1) [],
-
-        i2c1 OFFSET(4) NUMBITS(1) [],
-
-        i2c0 OFFSET(3) NUMBITS(1) [],
+        hstx OFFSET(3) NUMBITS(1) [],
 
         dma OFFSET(2) NUMBITS(1) [],
 
@@ -123,50 +127,52 @@ register_bitfields![u32,
         adc OFFSET(0) NUMBITS(1) []
     ],
     RESET_DONE [
+        usbctrl OFFSET(28) NUMBITS(1) [],
 
-        usbctrl OFFSET(24) NUMBITS(1) [],
+        uart1 OFFSET(27) NUMBITS(1) [],
+        uart0 OFFSET(26) NUMBITS(1) [],
+        trng OFFSET(25) NUMBITS(1) [],
+        timer1 OFFSET(24) NUMBITS(1) [],
+        timer0 OFFSET(23) NUMBITS(1) [],
 
-        uart1 OFFSET(23) NUMBITS(1) [],
+        tbman OFFSET(22) NUMBITS(1) [],
 
-        uart0 OFFSET(22) NUMBITS(1) [],
+        sysinfo OFFSET(21) NUMBITS(1) [],
 
-        timer OFFSET(21) NUMBITS(1) [],
+        syscfg OFFSET(20) NUMBITS(1) [],
 
-        tbman OFFSET(20) NUMBITS(1) [],
+        spi1 OFFSET(19) NUMBITS(1) [],
 
-        sysinfo OFFSET(19) NUMBITS(1) [],
+        spi0 OFFSET(18) NUMBITS(1) [],
 
-        syscfg OFFSET(18) NUMBITS(1) [],
+        sha256 OFFSET(17) NUMBITS(1) [],
+        pwm OFFSET(16) NUMBITS(1) [],
 
-        spi1 OFFSET(17) NUMBITS(1) [],
+        pll_usb OFFSET(15) NUMBITS(1) [],
 
-        spi0 OFFSET(16) NUMBITS(1) [],
+        pll_sys OFFSET(14) NUMBITS(1) [],
 
-        rtc OFFSET(15) NUMBITS(1) [],
+        pio2 OFFSET(13) NUMBITS(1) [],
 
-        pwm OFFSET(14) NUMBITS(1) [],
+        pio1 OFFSET(12) NUMBITS(1) [],
 
-        pll_usb OFFSET(13) NUMBITS(1) [],
+        pio0 OFFSET(11) NUMBITS(1) [],
 
-        pll_sys OFFSET(12) NUMBITS(1) [],
+        pads_qspi OFFSET(10) NUMBITS(1) [],
 
-        pio1 OFFSET(11) NUMBITS(1) [],
+        pads_bank0 OFFSET(9) NUMBITS(1) [],
 
-        pio0 OFFSET(10) NUMBITS(1) [],
+        jtag OFFSET(8) NUMBITS(1) [],
 
-        pads_qspi OFFSET(9) NUMBITS(1) [],
+        io_qspi OFFSET(7) NUMBITS(1) [],
 
-        pads_bank0 OFFSET(8) NUMBITS(1) [],
+        io_bank0 OFFSET(6) NUMBITS(1) [],
 
-        jtag OFFSET(7) NUMBITS(1) [],
+        i2c1 OFFSET(5) NUMBITS(1) [],
 
-        io_qspi OFFSET(6) NUMBITS(1) [],
+        i2c0 OFFSET(4) NUMBITS(1) [],
 
-        io_bank0 OFFSET(5) NUMBITS(1) [],
-
-        i2c1 OFFSET(4) NUMBITS(1) [],
-
-        i2c0 OFFSET(3) NUMBITS(1) [],
+        hstx OFFSET(3) NUMBITS(1) [],
 
         dma OFFSET(2) NUMBITS(1) [],
 
@@ -176,12 +182,13 @@ register_bitfields![u32,
     ]
 ];
 const RESETS_BASE: StaticRef<ResetsRegisters> =
-    unsafe { StaticRef::new(0x4000C000 as *const ResetsRegisters) };
+    unsafe { StaticRef::new(0x40020000 as *const ResetsRegisters) };
 
 pub enum Peripheral {
     Adc,
     BusController,
     Dma,
+    Hstx,
     I2c0,
     I2c1,
     IOBank0,
@@ -191,27 +198,32 @@ pub enum Peripheral {
     PadsQSpi,
     Pio0,
     Pio1,
+    Pio2,
     PllSys,
     PllUsb,
     Pwm,
-    Rtc,
+    Sha256,
     Spi0,
     Spi1,
     Syscfg,
     SysInfo,
     TBMan,
-    Timer,
+    Timer0,
+    Timer1,
+    Trng,
     Uart0,
     Uart1,
     UsbCtrl,
 }
 
 impl Peripheral {
+    #[inline(never)]
     fn get_reset_field_set(&self) -> FieldValue<u32, RESET::Register> {
         match self {
             Peripheral::Adc => RESET::adc::SET,
             Peripheral::BusController => RESET::busctrl::SET,
             Peripheral::Dma => RESET::dma::SET,
+            Peripheral::Hstx => RESET::hstx::SET,
             Peripheral::I2c0 => RESET::i2c0::SET,
             Peripheral::I2c1 => RESET::i2c1::SET,
             Peripheral::IOBank0 => RESET::io_bank0::SET,
@@ -221,27 +233,32 @@ impl Peripheral {
             Peripheral::PadsQSpi => RESET::pads_qspi::SET,
             Peripheral::Pio0 => RESET::pio0::SET,
             Peripheral::Pio1 => RESET::pio1::SET,
+            Peripheral::Pio2 => RESET::pio2::SET,
             Peripheral::PllSys => RESET::pll_sys::SET,
             Peripheral::PllUsb => RESET::pll_usb::SET,
             Peripheral::Pwm => RESET::pwm::SET,
-            Peripheral::Rtc => RESET::rtc::SET,
+            Peripheral::Sha256 => RESET::sha256::SET,
             Peripheral::Spi0 => RESET::spi0::SET,
             Peripheral::Spi1 => RESET::spi1::SET,
             Peripheral::Syscfg => RESET::syscfg::SET,
             Peripheral::SysInfo => RESET::sysinfo::SET,
             Peripheral::TBMan => RESET::tbman::SET,
-            Peripheral::Timer => RESET::timer::SET,
+            Peripheral::Timer1 => RESET::timer1::SET,
+            Peripheral::Timer0 => RESET::timer0::SET,
+            Peripheral::Trng => RESET::trng::SET,
             Peripheral::Uart0 => RESET::uart0::SET,
             Peripheral::Uart1 => RESET::uart1::SET,
             Peripheral::UsbCtrl => RESET::usbctrl::SET,
         }
     }
 
+    #[inline(never)]
     fn get_reset_field_clear(&self) -> FieldValue<u32, RESET::Register> {
         match self {
             Peripheral::Adc => RESET::adc::CLEAR,
             Peripheral::BusController => RESET::busctrl::CLEAR,
             Peripheral::Dma => RESET::dma::CLEAR,
+            Peripheral::Hstx => RESET::hstx::CLEAR,
             Peripheral::I2c0 => RESET::i2c0::CLEAR,
             Peripheral::I2c1 => RESET::i2c1::CLEAR,
             Peripheral::IOBank0 => RESET::io_bank0::CLEAR,
@@ -251,27 +268,32 @@ impl Peripheral {
             Peripheral::PadsQSpi => RESET::pads_qspi::CLEAR,
             Peripheral::Pio0 => RESET::pio0::CLEAR,
             Peripheral::Pio1 => RESET::pio1::CLEAR,
+            Peripheral::Pio2 => RESET::pio2::CLEAR,
             Peripheral::PllSys => RESET::pll_sys::CLEAR,
             Peripheral::PllUsb => RESET::pll_usb::CLEAR,
             Peripheral::Pwm => RESET::pwm::CLEAR,
-            Peripheral::Rtc => RESET::rtc::CLEAR,
+            Peripheral::Sha256 => RESET::sha256::CLEAR,
             Peripheral::Spi0 => RESET::spi0::CLEAR,
             Peripheral::Spi1 => RESET::spi1::CLEAR,
             Peripheral::Syscfg => RESET::syscfg::CLEAR,
             Peripheral::SysInfo => RESET::sysinfo::CLEAR,
             Peripheral::TBMan => RESET::tbman::CLEAR,
-            Peripheral::Timer => RESET::timer::CLEAR,
+            Peripheral::Timer1 => RESET::timer1::CLEAR,
+            Peripheral::Timer0 => RESET::timer0::CLEAR,
+            Peripheral::Trng => RESET::trng::CLEAR,
             Peripheral::Uart0 => RESET::uart0::CLEAR,
             Peripheral::Uart1 => RESET::uart1::CLEAR,
             Peripheral::UsbCtrl => RESET::usbctrl::CLEAR,
         }
     }
 
+    #[inline(never)]
     fn get_reset_done_field_set(&self) -> FieldValue<u32, RESET_DONE::Register> {
         match self {
             Peripheral::Adc => RESET_DONE::adc::SET,
             Peripheral::BusController => RESET_DONE::busctrl::SET,
             Peripheral::Dma => RESET_DONE::dma::SET,
+            Peripheral::Hstx => RESET_DONE::hstx::SET,
             Peripheral::I2c0 => RESET_DONE::i2c0::SET,
             Peripheral::I2c1 => RESET_DONE::i2c1::SET,
             Peripheral::IOBank0 => RESET_DONE::io_bank0::SET,
@@ -281,16 +303,19 @@ impl Peripheral {
             Peripheral::PadsQSpi => RESET_DONE::pads_qspi::SET,
             Peripheral::Pio0 => RESET_DONE::pio0::SET,
             Peripheral::Pio1 => RESET_DONE::pio1::SET,
+            Peripheral::Pio2 => RESET_DONE::pio2::SET,
             Peripheral::PllSys => RESET_DONE::pll_sys::SET,
             Peripheral::PllUsb => RESET_DONE::pll_usb::SET,
             Peripheral::Pwm => RESET_DONE::pwm::SET,
-            Peripheral::Rtc => RESET_DONE::rtc::SET,
+            Peripheral::Sha256 => RESET_DONE::sha256::SET,
             Peripheral::Spi0 => RESET_DONE::spi0::SET,
             Peripheral::Spi1 => RESET_DONE::spi1::SET,
             Peripheral::Syscfg => RESET_DONE::syscfg::SET,
             Peripheral::SysInfo => RESET_DONE::sysinfo::SET,
             Peripheral::TBMan => RESET_DONE::tbman::SET,
-            Peripheral::Timer => RESET_DONE::timer::SET,
+            Peripheral::Timer1 => RESET_DONE::timer1::SET,
+            Peripheral::Timer0 => RESET_DONE::timer0::SET,
+            Peripheral::Trng => RESET_DONE::trng::SET,
             Peripheral::Uart0 => RESET_DONE::uart0::SET,
             Peripheral::Uart1 => RESET_DONE::uart1::SET,
             Peripheral::UsbCtrl => RESET_DONE::usbctrl::SET,
@@ -303,12 +328,14 @@ pub struct Resets {
 }
 
 impl Resets {
+    #[inline(never)]
     pub const fn new() -> Resets {
         Resets {
             registers: RESETS_BASE,
         }
     }
 
+    #[inline(never)]
     pub fn reset(&self, peripherals: &'static [Peripheral]) {
         if peripherals.len() > 0 {
             let mut value: FieldValue<u32, RESET::Register> = peripherals[0].get_reset_field_set();
@@ -319,6 +346,7 @@ impl Resets {
         }
     }
 
+    #[inline(never)]
     pub fn unreset(&self, peripherals: &'static [Peripheral], wait_for: bool) {
         if peripherals.len() > 0 {
             let mut value: FieldValue<u32, RESET::Register> =
@@ -339,14 +367,19 @@ impl Resets {
         }
     }
 
+    #[inline(never)]
     pub fn reset_all_except(&self, peripherals: &'static [Peripheral]) {
-        let mut value = 0xFFFFFF;
+        let mut value = 0x1FFFFFFF;
         for peripheral in peripherals {
             value ^= peripheral.get_reset_field_set().value;
         }
         self.registers.reset.set(value);
     }
 
+
+
+    #[inline(never)]
+    #[allow(dead_code)]
     pub fn unreset_all_except(&self, peripherals: &'static [Peripheral], wait_for: bool) {
         let mut value = 0;
         for peripheral in peripherals {
@@ -354,15 +387,16 @@ impl Resets {
         }
 
         self.registers.reset.set(value);
+        let value_mask = !value & 0x1fffffff;
 
         if wait_for {
-            value = !value & 0xFFFFF;
-            while (self.registers.reset_done.get() & value) != value {}
+            while (self.registers.reset_done.get() & value_mask) != value_mask {}
         }
     }
 
+    #[inline(never)]
     pub fn watchdog_reset_all_except(&self, peripherals: &'static [Peripheral]) {
-        let mut value = 0xFFFFFF;
+        let mut value = 0x1FFFFFFF;
         for peripheral in peripherals {
             value ^= peripheral.get_reset_field_set().value;
         }

@@ -373,10 +373,10 @@ enum UARTStateRX {
 }
 
 const UART0_BASE: StaticRef<UartRegisters> =
-    unsafe { StaticRef::new(0x40034000 as *const UartRegisters) };
+    unsafe { StaticRef::new(0x40070000 as *const UartRegisters) };
 
 const UART1_BASE: StaticRef<UartRegisters> =
-    unsafe { StaticRef::new(0x40038000 as *const UartRegisters) };
+    unsafe { StaticRef::new(0x40078000 as *const UartRegisters) };
 
 pub struct Uart<'a> {
     registers: StaticRef<UartRegisters>,
@@ -399,6 +399,7 @@ pub struct Uart<'a> {
 }
 
 impl<'a> Uart<'a> {
+    #[inline(never)]
     pub fn new_uart0() -> Self {
         Self {
             registers: UART0_BASE,
@@ -420,6 +421,7 @@ impl<'a> Uart<'a> {
             deferred_call: DeferredCall::new(),
         }
     }
+    #[inline(never)]
     pub fn new_uart1() -> Self {
         Self {
             registers: UART1_BASE,
@@ -444,15 +446,15 @@ impl<'a> Uart<'a> {
     pub(crate) fn set_clocks(&self, clocks: &'a clocks::Clocks) {
         self.clocks.set(clocks);
     }
-
+    #[inline(never)]
     pub fn enable(&self) {
         self.registers.uartcr.modify(UARTCR::UARTEN::SET);
     }
-
+    #[inline(never)]
     pub fn disable(&self) {
         self.registers.uartcr.modify(UARTCR::UARTEN::CLEAR);
     }
-
+    #[inline(never)]
     pub fn enable_transmit_interrupt(&self) {
         self.registers.uartimsc.modify(UARTIMSC::TXIM::SET);
     }
@@ -460,6 +462,7 @@ impl<'a> Uart<'a> {
     pub fn disable_transmit_interrupt(&self) {
         self.registers.uartimsc.modify(UARTIMSC::TXIM::CLEAR);
     }
+    #[inline(never)]
 
     pub fn enable_receive_interrupt(&self) {
         self.registers.uartifls.modify(UARTIFLS::RXIFLSEL::FIFO_1_8);
@@ -474,12 +477,12 @@ impl<'a> Uart<'a> {
     fn uart_is_writable(&self) -> bool {
         !self.registers.uartfr.is_set(UARTFR::TXFF)
     }
-
+    #[inline(never)]
     pub fn send_byte(&self, data: u8) {
         while !self.uart_is_writable() {}
         self.registers.uartdr.write(UARTDR::DATA.val(data as u32));
     }
-
+    #[inline(never)]
     pub fn handle_interrupt(&self) {
         if self.registers.uartimsc.is_set(UARTIMSC::TXIM) {
             if self.registers.uartfr.is_set(UARTFR::TXFE) {
@@ -592,11 +595,12 @@ impl DeferredCallClient for Uart<'_> {
 }
 
 impl Configure for Uart<'_> {
+    #[inline(never)]
     fn configure(&self, params: Parameters) -> Result<(), ErrorCode> {
         self.disable();
         self.registers.uartlcr_h.modify(UARTLCR_H::FEN::CLEAR);
 
-        let clk = self.clocks.map_or(125_000_000, |clocks| {
+        let clk = self.clocks.map_or(150_000_000, |clocks| {
             clocks.get_frequency(clocks::Clock::Peripheral)
         });
 

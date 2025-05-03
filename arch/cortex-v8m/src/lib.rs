@@ -14,9 +14,12 @@ extern "C" {
     static _sstack: u8;
 }
 
+
+
+
 #[cfg(any(doc, all(target_arch = "arm", target_os = "none")))]
 extern "C" {
-    /// ARMv7-M systick handler function.
+    /// ARMv8-M systick handler function.
     ///
     /// For documentation of this function, please see
     /// `CortexMVariant::SYSTICK_HANDLER`.
@@ -58,7 +61,7 @@ core::arch::global_asm!(
 
 #[cfg(any(doc, all(target_arch = "arm", target_os = "none")))]
 extern "C" {
-    /// Handler of `svc` instructions on ARMv7-M.
+    /// Handler of `svc` instructions on ARMv8-M.
     ///
     /// For documentation of this function, please see
     /// `CortexMVariant::SVC_HANDLER`.
@@ -140,7 +143,7 @@ core::arch::global_asm!(
 
 #[cfg(any(doc, all(target_arch = "arm", target_os = "none")))]
 extern "C" {
-    /// Generic interrupt handler for ARMv7-M instruction sets.
+    /// Generic interrupt handler for ARMv8-M instruction sets.
     ///
     /// For documentation of this function, see `CortexMVariant::GENERIC_ISR`.
     pub fn generic_isr_arm_v8m();
@@ -439,7 +442,7 @@ unsafe extern "C" fn hard_fault_handler_arm_v8m_kernel(
 
 #[cfg(any(doc, all(target_arch = "arm", target_os = "none")))]
 extern "C" {
-    /// ARMv7-M hardfault handler.
+    /// ARMv8-M hardfault handler.
     ///
     /// For documentation of this function, please see
     /// `CortexMVariant::HARD_FAULT_HANDLER_HANDLER`.

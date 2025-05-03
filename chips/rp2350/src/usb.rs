@@ -326,6 +326,8 @@ ADDR_ENDP15 [
 MAIN_CTRL [
     /// Reduced timings for simulation
     SIM_TIMING OFFSET(31) NUMBITS(1) [],
+    /// Not isolated = 0, Isolated = 1
+    PHY_ISO OFFSET(2) NUMBITS(1) [],
     /// Device mode = 0, Host mode = 1
     HOST_NDEVICE OFFSET(1) NUMBITS(1) [],
     /// Enable controller
@@ -1325,6 +1327,7 @@ pub struct UsbCtrl<'a> {
 }
 
 impl<'a> UsbCtrl<'a> {
+    #[inline(never)]
     pub const fn new() -> Self {
         Self {
             dpsram: USBCTRL_DPSRAM,
@@ -1435,6 +1438,7 @@ impl<'a> UsbCtrl<'a> {
                 .sie_ctrl
                 .modify(SIE_CTRL::EP0_DOUBLE_BUF::CLEAR + SIE_CTRL::EP0_INT_1BUF::SET);
         }
+        self.registers.main_ctrl.modify(MAIN_CTRL::PHY_ISO::CLEAR);
     }
 
     pub fn enable_pullup(&self) {

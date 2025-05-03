@@ -30,7 +30,7 @@ register_structs! {
         /// Clock control, can be changed on-the-fly (except for auxsrc)
         (0x030 => clk_ref_ctrl: ReadWrite<u32, CLK_REF_CTRL::Register>),
         /// Clock divisor, can be changed on-the-fly
-        (0x034 => clk_ref_div: ReadWrite<u32>),
+        (0x034 => clk_ref_div: ReadWrite<u32,CLK_REF_DIV::Register>),
         /// Indicates which src is currently selected (one-hot)
         (0x038 => clk_ref_selected: ReadOnly<u32, CLK_REF_SELECTED::Register>),
         /// Clock control, can be changed on-the-fly (except for auxsrc)
@@ -132,12 +132,60 @@ register_structs! {
         (0x018 => intf: ReadWrite<u32, PLL_INTF::Register>),
         (0x01c => ints: ReadWrite<u32, PLL_INTS::Register>),
         (0x020 => @END),
-    }
-
+    },
+// Generic clock for using a array of clock registers like in SDK
+GenericClockRegisters {
+        /// Clock control, can be changed on-the-fly (except for auxsrc)
+        (0x000 => ctrl: ReadWrite<u32, Generic_CTRL::Register>),
+        /// Clock divisor, can be changed on-the-fly
+        (0x004 => div: ReadWrite<u32, Generic_DIV::Register>),
+        /// Indicates which src is currently selected (one-hot)
+        (0x008 => selected: ReadOnly<u32, Generic_SELECTED::Register>),
+        /// Clock control, can be changed on-the-fly (except for auxsrc)
+        (0x00C => @END),
+}
 }
 
 register_bitfields![u32,
-    CLK_GPOUTx_CTRL [
+    Generic_CTRL [
+        /// An edge on this signal shifts the phase of the output by 1 cycle of the input cl
+        /// This can be done at any time
+        NUDGE OFFSET(20) NUMBITS(1) [],
+        /// This delays the enable signal by up to 3 cycles of the input clock
+        /// This must be set before the clock is enabled to have any effect
+        PHASE OFFSET(16) NUMBITS(2) [],
+        /// Enables duty cycle correction for odd divisors
+        DC50 OFFSET(12) NUMBITS(1) [],
+        /// Starts and stops the clock generator cleanly
+        ENABLE OFFSET(11) NUMBITS(1) [],
+        /// Asynchronously kills the clock generator
+        KILL OFFSET(10) NUMBITS(1) [],
+        /// Selects the auxiliary clock source, will glitch when switching
+        AUXSRC OFFSET(5) NUMBITS(4) [
+            CLKSRC_PLL_SYS = 0,
+            CLKSRC_GPIN0 = 1,
+            CLKSRC_GPIN1 = 2,
+            CLKSRC_PLL_USB = 3,
+            ROSC_CLKSRC = 4,
+            XOSC_CLKSRC = 5,
+            CLK_SYS = 6,
+            CLK_USB = 7,
+            CLK_ADC = 8,
+            CLK_RTC = 9,
+            CLK_REF = 0xa
+        ]
+    ],
+    Generic_DIV [
+        /// Integer component of the divisor, 0 -> divide by 2^16
+        INT OFFSET(8) NUMBITS(24) [],
+        /// Fractional component of the divisor
+        FRAC OFFSET(0) NUMBITS(8) []
+    ],
+    Generic_SELECTED [
+        VALUE OFFSET (0) NUMBITS (32) []
+    ],
+
+CLK_GPOUTx_CTRL [
         /// An edge on this signal shifts the phase of the output by 1 cycle of the input cl
         /// This can be done at any time
         NUDGE OFFSET(20) NUMBITS(1) [],
@@ -186,15 +234,16 @@ register_bitfields![u32,
         SRC OFFSET(0) NUMBITS(2) [
             ROSC_CLKSRC_PH = 0x0,
             CLKSRC_CLK_REF_AUX = 0x1,
-            XOSC_CLKSRC = 0x2
+            XOSC_CLKSRC = 0x2,
+            LPOSC_CLKSRC = 0x3
         ]
     ],
     CLK_REF_DIV [
         /// Integer component of the divisor, 0 -> divide by 2^16
-        INT OFFSET(8) NUMBITS(2) []
+        INT OFFSET(16) NUMBITS(8) []
     ],
     CLK_REF_SELECTED [
-        VALUE OFFSET (0) NUMBITS (32) []
+        VALUE OFFSET (0) NUMBITS (4) []
     ],
     CLK_SYS_CTRL [
         /// Selects the auxiliary clock source, will glitch when switching
@@ -215,17 +264,18 @@ register_bitfields![u32,
     ],
     CLK_SYS_DIV [
         /// Integer component of the divisor, 0 -> divide by 2^16
-        INT OFFSET(8) NUMBITS(24) [],
+        INT OFFSET(16) NUMBITS(16) [],
         /// Fractional component of the divisor
-        FRAC OFFSET(0) NUMBITS(8) []
+        FRAC OFFSET(0) NUMBITS(16) []
     ],
     CLK_SYS_SELECTED [
-        VALUE OFFSET (0) NUMBITS (32) []
+        VALUE OFFSET (0) NUMBITS (2) []
     ],
     CLK_PERI_CTRL [
         /// Starts and stops the clock generator cleanly
-        ENABLE OFFSET(11) NUMBITS(1) [],
+        ENABLED OFFSET(28) NUMBITS(1) [],
         /// Asynchronously kills the clock generator
+        ENABLE OFFSET(11) NUMBITS(1) [],
         KILL OFFSET(10) NUMBITS(1) [],
         /// Selects the auxiliary clock source, will glitch when switching
         AUXSRC OFFSET(5) NUMBITS(3) [
@@ -244,7 +294,7 @@ register_bitfields![u32,
     ],
 
     CLK_PERI_SELECTED [
-        VALUE OFFSET (0) NUMBITS (32) []
+        VALUE OFFSET (0) NUMBITS (1) []
     ],
     CLK_HSTX_CTRL [
         ENABLED OFFSET(28) NUMBITS(1) [],
@@ -258,11 +308,12 @@ register_bitfields![u32,
         INT OFFSET(16) NUMBITS(2) []
     ],
     CLK_HSTX_SELECTED [
-        VALUE OFFSET (0) NUMBITS (32) []
+        VALUE OFFSET (0) NUMBITS (1) []
     ],
     CLK_USB_CTRL [
         /// An edge on this signal shifts the phase of the output by 1 cycle of the input cl
         /// This can be done at any time
+        ENABLED OFFSET(28) NUMBITS(1) [],
         NUDGE OFFSET(20) NUMBITS(1) [],
         /// This delays the enable signal by up to 3 cycles of the input clock
         /// This must be set before the clock is enabled to have any effect
@@ -284,10 +335,10 @@ register_bitfields![u32,
     ],
     CLK_USB_DIV [
         /// Integer component of the divisor, 0 -> divide by 2^16
-        INT OFFSET(8) NUMBITS(2) []
+        INT OFFSET(16) NUMBITS(4) []
     ],
     CLK_USB_SELECTED [
-        VALUE OFFSET (0) NUMBITS (32) []
+        VALUE OFFSET (0) NUMBITS (1) []
     ],
     CLK_XOSC_CTRL [
         /// An edge on this signal shifts the phase of the output by 1 cycle of the input cl
@@ -358,6 +409,7 @@ register_bitfields![u32,
     CLK_ADC_CTRL [
         /// An edge on this signal shifts the phase of the output by 1 cycle of the input cl
         /// This can be done at any time
+        ENABLED OFFSET(28) NUMBITS(1) [],
         NUDGE OFFSET(20) NUMBITS(1) [],
         /// This delays the enable signal by up to 3 cycles of the input clock
         /// This must be set before the clock is enabled to have any effect
@@ -379,10 +431,10 @@ register_bitfields![u32,
     ],
     CLK_ADC_DIV [
         /// Integer component of the divisor, 0 -> divide by 2^16
-        INT OFFSET(8) NUMBITS(2) []
+        INT OFFSET(16) NUMBITS(4) []
     ],
     CLK_ADC_SELECTED [
-        VALUE OFFSET (0) NUMBITS (32) []
+        VALUE OFFSET (0) NUMBITS (1) []
     ],
     DFTCLK_XOSC_CTRL [
         SRC OFFSET(0) NUMBITS(2) [
@@ -856,7 +908,7 @@ const PLL_USB_BASE: StaticRef<PllRegisters> =
 const CLOCKS_BASE: StaticRef<ClocksRegisters> =
     unsafe { StaticRef::new(0x40010000 as *const ClocksRegisters) };
 
-const NUM_CLOCKS: usize = 12;
+const NUM_CLOCKS: usize = 10;
 
 pub struct Clocks {
     registers: StaticRef<ClocksRegisters>,
@@ -879,11 +931,9 @@ pub enum Clock {
     Reference = 4,
     System = 5,
     Peripheral = 6,
-    Usb = 7,
-    Adc = 8,
-    Dftclkxosc = 9,
-    Dftclkrosc = 10,
-    Dftclklosc = 11,
+    Hstx = 7,
+    Usb = 8,
+    Adc = 9,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -943,6 +993,7 @@ pub enum ReferenceAuxiliaryClockSource {
     PllUsb = 0,
     Gpio0 = 1,
     Gpio1 = 2,
+    PllUsbPrimary = 3,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -1037,8 +1088,6 @@ impl Clocks {
             registers: CLOCKS_BASE,
             pll_registers: &[PLL_SYS_BASE, PLL_USB_BASE],
             frequencies: [
-                Cell::new(0),
-                Cell::new(0),
                 Cell::new(0),
                 Cell::new(0),
                 Cell::new(0),
@@ -1186,10 +1235,16 @@ impl Clocks {
             _ => panic!("failed to set div"),
         }
     }
-
+    #[inline(never)]
     fn get_divider(&self, source_freq: u32, freq: u32) -> u32 {
-        // pico-sdk: Div register is 24.8 int.frac divider so multiply by 2^8 (left shift by 8)
-        (((source_freq as u64) << 8) / freq as u64) as u32
+        // From Datasheet, div is  bit 16 ->
+
+        let div64: u64 = ((source_freq as u64) << 16) / freq as u64;
+        if div64 >> 32 > 0 {
+            return 0;
+        } else {
+            return div64 as u32;
+        }
     }
 
     #[cfg(any(doc, all(target_arch = "arm", target_os = "none")))]
@@ -1415,6 +1470,7 @@ impl Clocks {
 
         self.set_frequency(Clock::Peripheral, freq);
     }
+
     #[inline(never)]
     pub fn configure_usb(
         &self,
@@ -1462,7 +1518,7 @@ impl Clocks {
 
         self.set_frequency(Clock::Usb, freq);
     }
-
+    #[inline(never)]
     pub fn configure_adc(
         &self,
         auxiliary_source: AdcAuxiliaryClockSource,
@@ -1509,14 +1565,112 @@ impl Clocks {
 
         self.set_frequency(Clock::Adc, freq);
     }
-    #[inline(never)]
-    pub fn measure_frequency_setup(&self, src: FCClockSource) {
-        let set_src = src as u32;
-        self.registers.fc0_src.write(FC0_SRC::FC0_SRC.val(set_src));
-        while self.registers.fc0_status.read(FC0_STATUS::DONE) != 0x1 {}
+
+    pub fn clock_configure(
+        &self,
+        clock: Clock,
+        source: ReferenceClockSource,
+        auxiliary_source: ReferenceAuxiliaryClockSource,
+        source_freq: u32,
+        freq: u32,
+    ) {
+        if freq > source_freq {
+            panic!(
+                "freq is greater than source freq ({} > {})",
+                freq, source_freq
+            );
+        }
+        let div = self.get_divider(source_freq, freq);
+
+        // pico-sdk:
+        // If increasing divisor, set divisor before source. Otherwise set source
+        // before divisor. This avoids a momentary overspeed when e.g. switching
+        // to a faster source and increasing divisor to compensate.
+        if div > self.registers.clk_ref_div.get() {
+            self.set_divider(Clock::Reference, div);
+        }
+
+        // pico-sdk:
+        // If switching a glitchless slice (ref or sys) to an aux source, switch
+        // away from aux *first* to avoid passing glitches when changing aux mux.
+        // Assume (!!!) glitchless source 0 is no faster than the aux source.
+        if source == ReferenceClockSource::Auxiliary {
+            self.registers
+                .clk_ref_ctrl
+                .modify(CLK_REF_CTRL::SRC::ROSC_CLKSRC_PH);
+            while self
+                .registers
+                .clk_ref_selected
+                .read(CLK_REF_SELECTED::VALUE)
+                != 0x1
+            {}
+        }
+        // If no glitchless mux, cleanly stop the clock to avoid glitches
+        // propagating when changing aux mux. Note it would be a really bad idea
+        // to do this on one of the glitchless clocks (clk_sys, clk_ref).
+        else {
+            // Disable clock. On clk_ref and clk_sys this does nothing,
+            // all other clocks have the ENABLE bit in the same position.
+        }
+        self.registers
+            .clk_ref_ctrl
+            .modify(CLK_REF_CTRL::AUXSRC.val(auxiliary_source as u32));
+        self.registers
+            .clk_ref_ctrl
+            .modify(CLK_REF_CTRL::SRC.val(source as u32));
+        while self
+            .registers
+            .clk_ref_selected
+            .read(CLK_REF_SELECTED::VALUE)
+            & (1 << (source as u32))
+            == 0x0
+        {}
+
+        // pico-sdk:
+        // Now that the source is configured, we can trust that the user-supplied
+        // divisor is a safe value.
+        self.set_divider(Clock::Reference, div);
+
+        self.set_frequency(Clock::Reference, freq);
     }
     #[inline(never)]
-    pub fn measure_frequency(&self) -> u32 {
-        self.registers.fc0_result.read(FC0_RESULT::KHZ)
+    pub fn measure_frequency_setup(&self, src: FCClockSource) -> u32 {
+        let set_src = src as u32;
+        while self.registers.fc0_status.read(FC0_STATUS::RUNNING) == 0x1 {}
+
+        //        NoClk = 0,
+        let freq: u32;
+        match src {
+            FCClockSource::PllSys => freq = 150000000,
+            FCClockSource::PllUsb => freq = 48000000,
+            FCClockSource::Rosc => freq = 0,   // TODO
+            FCClockSource::RoscPH => freq = 0, // TODO
+            FCClockSource::Xosc => freq = 0,   // TODO
+            FCClockSource::Gpio0 => freq = self.get_frequency(Clock::GpioOut0),
+            FCClockSource::Gpio1 => freq = self.get_frequency(Clock::GpioOut1),
+            FCClockSource::Ref => freq = self.get_frequency(Clock::Reference),
+            FCClockSource::Sys => freq = self.get_frequency(Clock::System),
+            FCClockSource::Peri => freq = self.get_frequency(Clock::Peripheral),
+            FCClockSource::Usb => freq = self.get_frequency(Clock::Usb),
+            FCClockSource::Adc => freq = self.get_frequency(Clock::Adc),
+            FCClockSource::Hstx => freq = self.get_frequency(Clock::Hstx),
+            FCClockSource::Lposc => freq = 0,     // TODO
+            FCClockSource::Otp => freq = 0,       // TODO
+            FCClockSource::PllUsbDft => freq = 0, // TODO
+            FCClockSource::NoClk => {
+                panic!("NoClk in freq measure");
+                return 0; 
+            }
+        }
+        self.registers.fc0_ref_khz.set(freq / 1000);
+        self.registers.fc0_interval.set(10);
+        self.registers.fc0_min_khz.set(0);
+        self.registers.fc0_max_khz.set(0xffffffff);
+let s : u32 = 10;
+        self.registers
+            .fc0_delay.set(s);
+        self.registers.fc0_src.write(FC0_SRC::FC0_SRC.val(set_src));
+        while self.registers.fc0_status.read(FC0_STATUS::DONE) != 0x1 {}
+        return self.registers.fc0_result.read(FC0_RESULT::KHZ);
     }
 }

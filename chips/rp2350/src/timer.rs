@@ -13,7 +13,7 @@ use kernel::utilities::registers::{
 use kernel::utilities::StaticRef;
 use kernel::ErrorCode;
 
-use crate::interrupts::TIMER_IRQ_0;
+use crate::interrupts::TIMER0_IRQ_0;
 
 register_structs! {
     /// Controls time and alarms\n
@@ -176,6 +176,7 @@ pub struct RPTimer<'a> {
 }
 
 impl<'a> RPTimer<'a> {
+    #[inline(never)]
     pub const fn new() -> RPTimer<'a> {
         RPTimer {
             registers: TIMER_BASE,
@@ -201,7 +202,7 @@ impl<'a> RPTimer<'a> {
         // next kernel tasks are processed.
         unsafe {
             atomic(|| {
-                let n = cortexm33::nvic::Nvic::new(TIMER_IRQ_0);
+                let n = cortexm33::nvic::Nvic::new(TIMER0_IRQ_0);
                 n.enable();
             })
         }
@@ -212,7 +213,7 @@ impl<'a> RPTimer<'a> {
         // the interrupt firing, it seems that RP2040 requires manual NVIC
         // disabling of the interrupt.
         unsafe {
-            cortexm33::nvic::Nvic::new(TIMER_IRQ_0).disable();
+            cortexm33::nvic::Nvic::new(TIMER0_IRQ_0).disable();
         }
     }
 
@@ -261,7 +262,7 @@ impl<'a> Alarm<'a> for RPTimer<'a> {
         unsafe {
             atomic(|| {
                 // Clear pending interrupts
-                cortexm33::nvic::Nvic::new(TIMER_IRQ_0).clear_pending();
+                cortexm33::nvic::Nvic::new(TIMER0_IRQ_0).clear_pending();
             });
         }
         self.disable_interrupt();

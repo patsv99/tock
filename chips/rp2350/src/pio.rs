@@ -50,6 +50,16 @@ struct StateMachineReg {
     pinctrl: ReadWrite<u32, SMx_PINCTRL::Register>,
 }
 
+#[repr(C)]
+struct RxfPutGetReg {
+    putget0: ReadWrite<u32, RXFxPutGet::Register>,
+    putget1: ReadWrite<u32, RXFxPutGet::Register>,
+    putget2: ReadWrite<u32, RXFxPutGet::Register>,
+    putget3: ReadWrite<u32, RXFxPutGet::Register>,
+}
+
+
+
 register_structs! {
 PioRegisters {
         // PIO control register
@@ -110,21 +120,25 @@ PioRegisters {
         (0x048 => instr_mem: [InstrMem; NUMBER_INSTR_MEMORY_LOCATIONS]),
         // State Machines
         (0x0c8 => sm: [StateMachineReg; NUMBER_STATE_MACHINES]),
+        (0x128 => rxf_putget: [RxfPutGetReg; NUMBER_STATE_MACHINES]),
+
+        (0x168 => gpiobase: ReadWrite<u32, GPIOBASE::Register>),
+
         // Raw Interrupts
-        (0x128 => intr: ReadWrite<u32, INTR::Register>),
+        (0x16c => intr: ReadWrite<u32, INTR::Register>),
         // Interrupt Enable for irq0
-        (0x12C => irq0_inte: ReadWrite<u32, IRQ0_INTE::Register>),
+        (0x170 => irq0_inte: ReadWrite<u32, IRQ0_INTE::Register>),
         // Interrupt Force for irq0
-        (0x130 => irq0_intf: ReadWrite<u32, IRQ0_INTF::Register>),
+        (0x174 => irq0_intf: ReadWrite<u32, IRQ0_INTF::Register>),
         // Interrupt status after masking & forcing for irq0
-        (0x134 => irq0_ints: ReadWrite<u32, IRQ0_INTS::Register>),
+        (0x178 => irq0_ints: ReadWrite<u32, IRQ0_INTS::Register>),
         // Interrupt Enable for irq1
-        (0x138 => irq1_inte: ReadWrite<u32, IRQ1_INTE::Register>),
+        (0x17c => irq1_inte: ReadWrite<u32, IRQ1_INTE::Register>),
         // Interrupt Force for irq1
-        (0x13C => irq1_intf: ReadWrite<u32, IRQ1_INTF::Register>),
+        (0x180 => irq1_intf: ReadWrite<u32, IRQ1_INTF::Register>),
         // Interrupt status after masking & forcing for irq1
-        (0x140 => irq1_ints: ReadWrite<u32, IRQ1_INTS::Register>),
-        (0x144 => @END),
+        (0x184 => irq1_ints: ReadWrite<u32, IRQ1_INTS::Register>),
+        (0x188 => @END),
     }
 }
 
@@ -399,6 +413,14 @@ SMx_PINCTRL [
     // written to this pin will always be the least-significant bit of
     // the OUT or MOV data.
     OUT_BASE OFFSET(0) NUMBITS(5) []
+],
+RXFxPutGet [
+    // Direct read/write access to entry 1 of SM0’s RX FIFO, if
+    //SHIFTCTRL_FJOIN_RX_PUT xor SHIFTCTRL_FJOIN_RX_GET is set
+    RX_FIFO OFFSET(0) NUMBITS(32) []
+],
+GPIOBASE [
+RELOCATE OFFSET(4) NUMBITS(1) [],
 ],
 INTR [
     SM3 OFFSET(11) NUMBITS(1) [],
@@ -1045,7 +1067,8 @@ impl StateMachine {
     }
 
     /// Set a state machine's state to enabled or to disabled.
-    ///
+    ///            10 => ChannelNumber::Ch10,
+
     /// enabled => true to enable the state machine
     pub fn set_enabled(&self, enabled: bool) {
         match self.sm_number {
@@ -1307,7 +1330,7 @@ impl Pio {
             pin.set_function(GpioFunction::PIO0)
         }
     }
-
+    #[inline(never)]
     /// Create a new PIO0 struct.
     pub fn new_pio0() -> Self {
         Self {
@@ -1319,6 +1342,7 @@ impl Pio {
         }
     }
 
+    #[inline(never)]
     /// Create a new PIO1 struct.
     pub fn new_pio1() -> Self {
         Self {
