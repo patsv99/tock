@@ -3,9 +3,9 @@
 // Copyright Tock Contributors 2022.
 
 
-use kernel::utilities::registers::interfaces::{ReadWriteable, Readable, Writeable};
+// use kernel::utilities::registers::interfaces::{};
 use kernel::utilities::registers::{
-    register_bitfields, register_structs, ReadOnly, ReadWrite, WriteOnly,
+    register_bitfields, register_structs, ReadWrite
 };
 use kernel::utilities::StaticRef;
 

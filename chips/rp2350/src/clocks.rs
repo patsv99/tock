@@ -3,15 +3,15 @@
 // Copyright Tock Contributors 2022.
 
 use core::cell::Cell;
-use kernel::static_init;
+// use kernel::static_init;
 use kernel::utilities::registers::interfaces::{ReadWriteable, Readable, Writeable};
 use kernel::utilities::registers::{register_bitfields, register_structs, ReadOnly, ReadWrite};
 use kernel::utilities::StaticRef;
 
-use CS::{LOCK, REFDIV};
+// use CS::{LOCK, REFDIV};
 
-use crate::chip::Rp2350DefaultPeripherals;
-use crate::resets::Peripheral;
+// use crate::chip::Rp2350DefaultPeripherals;
+// use crate::resets::Peripheral;
 
 /* Clocks base */
 register_structs! {
@@ -1235,6 +1235,7 @@ impl Clocks {
             _ => panic!("failed to set div"),
         }
     }
+
     #[inline(never)]
     fn get_divider(&self, source_freq: u32, freq: u32) -> u32 {
         // From Datasheet, div is  bit 16 ->
@@ -1268,6 +1269,7 @@ impl Clocks {
     fn loop_3_cycles(&self, _clock: Clock) {
         unimplemented!()
     }
+
     #[inline(never)]
     pub fn configure_gpio_out(
         &self,
@@ -1322,6 +1324,7 @@ impl Clocks {
             _ => panic!("trying to set a non gpio clock"),
         }
     }
+
     #[inline(never)]
     pub fn configure_system(
         &self,
@@ -1383,6 +1386,7 @@ impl Clocks {
 
         self.set_frequency(Clock::System, freq);
     }
+
     #[inline(never)]
     pub fn configure_reference(
         &self,
@@ -1444,6 +1448,7 @@ impl Clocks {
 
         self.set_frequency(Clock::Reference, freq);
     }
+
     #[inline(never)]
     pub fn configure_peripheral(
         &self,
@@ -1518,6 +1523,7 @@ impl Clocks {
 
         self.set_frequency(Clock::Usb, freq);
     }
+
     #[inline(never)]
     pub fn configure_adc(
         &self,
@@ -1566,73 +1572,6 @@ impl Clocks {
         self.set_frequency(Clock::Adc, freq);
     }
 
-    pub fn clock_configure(
-        &self,
-        clock: Clock,
-        source: ReferenceClockSource,
-        auxiliary_source: ReferenceAuxiliaryClockSource,
-        source_freq: u32,
-        freq: u32,
-    ) {
-        if freq > source_freq {
-            panic!(
-                "freq is greater than source freq ({} > {})",
-                freq, source_freq
-            );
-        }
-        let div = self.get_divider(source_freq, freq);
-
-        // pico-sdk:
-        // If increasing divisor, set divisor before source. Otherwise set source
-        // before divisor. This avoids a momentary overspeed when e.g. switching
-        // to a faster source and increasing divisor to compensate.
-        if div > self.registers.clk_ref_div.get() {
-            self.set_divider(Clock::Reference, div);
-        }
-
-        // pico-sdk:
-        // If switching a glitchless slice (ref or sys) to an aux source, switch
-        // away from aux *first* to avoid passing glitches when changing aux mux.
-        // Assume (!!!) glitchless source 0 is no faster than the aux source.
-        if source == ReferenceClockSource::Auxiliary {
-            self.registers
-                .clk_ref_ctrl
-                .modify(CLK_REF_CTRL::SRC::ROSC_CLKSRC_PH);
-            while self
-                .registers
-                .clk_ref_selected
-                .read(CLK_REF_SELECTED::VALUE)
-                != 0x1
-            {}
-        }
-        // If no glitchless mux, cleanly stop the clock to avoid glitches
-        // propagating when changing aux mux. Note it would be a really bad idea
-        // to do this on one of the glitchless clocks (clk_sys, clk_ref).
-        else {
-            // Disable clock. On clk_ref and clk_sys this does nothing,
-            // all other clocks have the ENABLE bit in the same position.
-        }
-        self.registers
-            .clk_ref_ctrl
-            .modify(CLK_REF_CTRL::AUXSRC.val(auxiliary_source as u32));
-        self.registers
-            .clk_ref_ctrl
-            .modify(CLK_REF_CTRL::SRC.val(source as u32));
-        while self
-            .registers
-            .clk_ref_selected
-            .read(CLK_REF_SELECTED::VALUE)
-            & (1 << (source as u32))
-            == 0x0
-        {}
-
-        // pico-sdk:
-        // Now that the source is configured, we can trust that the user-supplied
-        // divisor is a safe value.
-        self.set_divider(Clock::Reference, div);
-
-        self.set_frequency(Clock::Reference, freq);
-    }
     #[inline(never)]
     pub fn measure_frequency_setup(&self, src: FCClockSource) -> u32 {
         let set_src = src as u32;
@@ -1657,16 +1596,14 @@ impl Clocks {
             FCClockSource::Lposc => freq = 0,     // TODO
             FCClockSource::Otp => freq = 0,       // TODO
             FCClockSource::PllUsbDft => freq = 0, // TODO
-            FCClockSource::NoClk => {
-                panic!("NoClk in freq measure");
-                return 0; 
-            }
+            FCClockSource::NoClk => { return 0; }
         }
+
         self.registers.fc0_ref_khz.set(freq / 1000);
         self.registers.fc0_interval.set(10);
         self.registers.fc0_min_khz.set(0);
         self.registers.fc0_max_khz.set(0xffffffff);
-let s : u32 = 10;
+        let s : u32 = 10;
         self.registers
             .fc0_delay.set(s);
         self.registers.fc0_src.write(FC0_SRC::FC0_SRC.val(set_src));

@@ -3,15 +3,15 @@
 // Copyright Tock Contributors 2022.
 
 
-use kernel::debug;
-use kernel::hil;
-use kernel::utilities::cells::OptionalCell;
-use kernel::utilities::registers::interfaces::{ReadWriteable, Readable, Writeable};
+// use kernel::debug;
+// use kernel::hil;
+// use kernel::utilities::cells::OptionalCell;
+// use kernel::utilities::registers::interfaces::{ReadWriteable, Readable, Writeable};
 use kernel::utilities::registers::{
-    register_bitfields, register_structs, ReadOnly, ReadWrite, WriteOnly,
+    register_bitfields, register_structs, ReadWrite,
 };
 use kernel::utilities::StaticRef;
-use kernel::ErrorCode;
+// use kernel::ErrorCode;
 
 
 register_structs! {

@@ -10,7 +10,7 @@
 use enum_primitive::cast::FromPrimitive;
 use enum_primitive::enum_from_primitive;
 use kernel::hil;
-use kernel::hil::gpio;
+// use kernel::hil::gpio;
 use kernel::utilities::cells::OptionalCell;
 use kernel::utilities::registers::interfaces::{ReadWriteable, Readable, Writeable};
 use kernel::utilities::registers::{register_bitfields, register_structs, ReadOnly, ReadWrite};
@@ -36,18 +36,18 @@ register_structs! {
         (0x180 => fill: [ReadWrite<u32>; 32]),
 
         /// Raw interrupts
-        (0x200 => irqsummaryProc0Secure0 : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE0::Register>),
-        (0x204 => irqsummaryProc0Secure1_ : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE1::Register>),
-        (0x208 => irqsummaryProc0NSecure0 : ReadWrite<u32,IRQSUMMARY_PROC0_NSECURE0::Register>),
-        (0x20c => irqsummaryProc0NSecure1 : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE1::Register>),
-        (0x210 => irqsummaryProc1Secure0 : ReadWrite<u32,IRQSUMMARY_PROC1_SECURE0::Register>),
-        (0x214 => irqsummaryProc1Secure1 : ReadWrite<u32,IRQSUMMARY_PROC1_SECURE1::Register>),
-        (0x218 => irqsummaryProc1NSecure0 : ReadWrite<u32,IRQSUMMARY_PROC1_NSECURE0::Register>),
-        (0x21c => irqsummaryProc1NSecure1 : ReadWrite<u32,IRQSUMMARY_PROC1_NSECURE1::Register>),
-        (0x220 => irqsummaryComaWakeSecure0 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_SECURE0::Register>),
-        (0x224 => irqsummaryComaWakeSecure1 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_SECURE1::Register>),
-        (0x228 => irqsummaryComaWakeNSecure0 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_NSECURE0::Register>),
-        (0x22c => irqsummaryComaWakeNSecure1 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_NSECURE1::Register>),
+        (0x200 => irqsummary_proc0_secure0 : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE0::Register>),
+        (0x204 => irqsummary_proc0_secure1 : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE1::Register>),
+        (0x208 => irqsummary_proc0_nsecure0 : ReadWrite<u32,IRQSUMMARY_PROC0_NSECURE0::Register>),
+        (0x20c => irqsummary_proc0_nsecure1 : ReadWrite<u32,IRQSUMMARY_PROC0_SECURE1::Register>),
+        (0x210 => irqsummary_proc1_secure0 : ReadWrite<u32,IRQSUMMARY_PROC1_SECURE0::Register>),
+        (0x214 => irqsummary_proc1_secure1 : ReadWrite<u32,IRQSUMMARY_PROC1_SECURE1::Register>),
+        (0x218 => irqsummary_proc1_nsecure0 : ReadWrite<u32,IRQSUMMARY_PROC1_NSECURE0::Register>),
+        (0x21c => irqsummary_proc1_nsecure1 : ReadWrite<u32,IRQSUMMARY_PROC1_NSECURE1::Register>),
+        (0x220 => irqsummary_coma_wake_secure0 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_SECURE0::Register>),
+        (0x224 => irqsummary_coma_wake_secure1 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_SECURE1::Register>),
+        (0x228 => irqsummary_coma_wake_nsecure0 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_NSECURE0::Register>),
+        (0x22c => irqsummary_coma_wake_nsecure1 : ReadWrite<u32,IRQSUMMARY_COMA_WAKE_NSECURE1::Register>),
         (0x230 => intr : [ReadWrite<u32,INTR_0::Register>; 6]),
         /*
         // More detailed version
@@ -1557,7 +1557,7 @@ impl SIO {
     }
 
     pub fn handle_fifo_interrupt(&self) {
-        let st = self.registers.fifo_st.get();
+        let _st = self.registers.fifo_st.get();
     }
 
     pub fn get_processor(&self) -> Processor {

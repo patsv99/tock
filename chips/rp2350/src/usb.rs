@@ -23,7 +23,7 @@ macro_rules! internal_err {
 }
 
 register_structs! {
-    Ep_ctrl {
+    EpCtrl {
         (0x00 => ep_in_ctrl: ReadWrite<u32, EP_CONTROL::Register>),
         (0x04 => ep_out_ctrl: ReadWrite<u32, EP_CONTROL::Register>),
         (0x08 => @END),
@@ -31,7 +31,7 @@ register_structs! {
 }
 
 register_structs! {
-    Ep_buf_ctrl {
+    EpBufCtrl {
         (0x00 => ep_in_buf_ctrl: ReadWrite<u32, EP_BUFFER_CONTROL::Register>),
         (0x04 => ep_out_buf_ctrl: ReadWrite<u32, EP_BUFFER_CONTROL::Register>),
         (0x08 => @END),
@@ -40,12 +40,12 @@ register_structs! {
 
 register_structs! {
     /// USB FS/LS controller device registers
-    Usbctrl_DPSRAM {
+    UsbctrlDpsram {
         /// Device address and endpoint control
         (0x00 => setup_h: ReadWrite<u32, SETUP_H::Register>),
         (0x04 => setup_l: ReadWrite<u32, SETUP_L::Register>),
-        (0x08 => ep_ctrl: [Ep_ctrl; 15]),
-        (0x80 => ep_buf_ctrl: [Ep_buf_ctrl; 16]),
+        (0x08 => ep_ctrl: [EpCtrl; 15]),
+        (0x80 => ep_buf_ctrl: [EpBufCtrl; 16]),
         (0x100 => ep0_buffer0: [VolatileCell<u8>; 0x40]),
         (0x140 => optional_ep0_buffer0: [VolatileCell<u8>; 0x40]),
         (0x180 => buffers: [VolatileCell<u8>; 4096-0x180]),
@@ -55,7 +55,7 @@ register_structs! {
 
 register_structs! {
     /// USB FS/LS controller device registers
-    Usbctrl_RegsRegisters {
+    UsbctrlRegsRegisters {
         /// Device address and endpoint control
         (0x000 => addr_endp: ReadWrite<u32, ADDR_ENDP::Register>),
         /// Interrupt endpoint 1. Only valid for HOST mode.
@@ -1304,17 +1304,17 @@ impl Endpoint<'_> {
     }
 }
 
-const USBCTRL_DPSRAM: StaticRef<Usbctrl_DPSRAM> =
-    unsafe { StaticRef::new(0x50100000 as *const Usbctrl_DPSRAM) };
+const USBCTRL_DPSRAM: StaticRef<UsbctrlDpsram> =
+    unsafe { StaticRef::new(0x50100000 as *const UsbctrlDpsram) };
 
-const USBCTRL_REGS_BASE: StaticRef<Usbctrl_RegsRegisters> =
-    unsafe { StaticRef::new(0x50110000 as *const Usbctrl_RegsRegisters) };
+const USBCTRL_REGS_BASE: StaticRef<UsbctrlRegsRegisters> =
+    unsafe { StaticRef::new(0x50110000 as *const UsbctrlRegsRegisters) };
 
 pub const N_ENDPOINTS: usize = 16;
 
 pub struct UsbCtrl<'a> {
-    dpsram: StaticRef<Usbctrl_DPSRAM>,
-    registers: StaticRef<Usbctrl_RegsRegisters>,
+    dpsram: StaticRef<UsbctrlDpsram>,
+    registers: StaticRef<UsbctrlRegsRegisters>,
     state: OptionalCell<UsbState>,
     client: OptionalCell<&'a dyn hil::usb::Client<'a>>,
     descriptors: [Endpoint<'a>; N_ENDPOINTS],

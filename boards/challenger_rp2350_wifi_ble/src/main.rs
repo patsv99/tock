@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright Tock Contributors 2022.
 
-//! Tock kernel for the Raspberry Pi Pico.
+//! Tock kernel for the Challenger RP2350 WIFI BLE.
 //!
 //! It is based on RP2350SoC SoC (Cortex M0+).
 
@@ -21,7 +21,7 @@ use components::gpio::GpioComponent;
 use components::led::LedsComponent;
 use enum_primitive::cast::FromPrimitive;
 use kernel::component::Component;
-use kernel::{debug, debug_gpio, debug_verbose};
+use kernel::{debug, debug_verbose};
 use kernel::hil::gpio::{Configure, FloatingState};
 use kernel::hil::i2c::I2CMaster;
 use kernel::hil::led::LedHigh;
@@ -79,7 +79,7 @@ type TemperatureRp2350Sensor = components::temperature_rp2350::TemperatureRp2350
 type TemperatureDriver = components::temperature::TemperatureComponentType<TemperatureRp2350Sensor>;
 
 /// Supported drivers by the platform
-pub struct RaspberryPiPico2 {
+pub struct Challenger_wifi_ble {
     ipc: kernel::ipc::IPC<{ NUM_PROCS as u8 }>,
     console: &'static capsules_core::console::Console<'static>,
     alarm: &'static capsules_core::alarm::AlarmDriver<
@@ -101,7 +101,7 @@ pub struct RaspberryPiPico2 {
     systick: cortexm33::systick::SysTick,
 }
 
-impl SyscallDriverLookup for RaspberryPiPico2 {
+impl SyscallDriverLookup for Challenger_wifi_ble {
     fn with_driver<F, R>(&self, driver_num: usize, f: F) -> R
     where
         F: FnOnce(Option<&dyn SyscallDriver>) -> R,
@@ -125,7 +125,7 @@ impl SyscallDriverLookup for RaspberryPiPico2 {
     }
 }
 
-impl KernelResources<Rp2350<'static, Rp2350DefaultPeripherals<'static>>> for RaspberryPiPico2 {
+impl KernelResources<Rp2350<'static, Rp2350DefaultPeripherals<'static>>> for Challenger_wifi_ble {
     type SyscallDriverLookup = Self;
     type SyscallFilter = ();
     type ProcessFault = ();
@@ -285,7 +285,7 @@ fn init_clocks(peripherals: &Rp2350DefaultPeripherals) {
 #[inline(never)]
 pub unsafe fn start() -> (
     &'static kernel::Kernel,
-    RaspberryPiPico2,
+    Challenger_wifi_ble,
     &'static rp2350::chip::Rp2350<'static, Rp2350DefaultPeripherals<'static>>,
 ) {
     // Loads relocations and clears BSS
@@ -404,14 +404,18 @@ pub unsafe fn start() -> (
     let console = components::console::ConsoleComponent::new(
         board_kernel,
         capsules_core::console::DRIVER_NUM,
-        uart_mux,
+        uart_mux2,
     )
     .finalize(components::console_component_static!());
     // Create the debugger object that handles calls to `debug!()`.
     components::debug_writer::DebugWriterComponent::new(uart_mux2)
         .finalize(components::debug_writer_component_static!());
-    let gpio_debug_pin = peripherals.pins.get_pin(RPGpio::GPIO7);
-    kernel::debug::assign_gpios(Some(gpio_debug_pin),None,None);
+    // Debug GPIO outputs..
+    let gpio_debug_pin_0 = peripherals.pins.get_pin(RPGpio::GPIO23);
+    let gpio_debug_pin_1 = peripherals.pins.get_pin(RPGpio::GPIO24);
+    let gpio_debug_pin_2 = peripherals.pins.get_pin(RPGpio::GPIO25);
+
+    kernel::debug::assign_gpios(Some(gpio_debug_pin_0),Some(gpio_debug_pin_1),Some(gpio_debug_pin_2));
 
     // Setup interrupts for uart so we can debug printouts 
     cortexm33::nvic::Nvic::new(rp2350::interrupts::UART0_IRQ).enable();
@@ -431,42 +435,69 @@ pub unsafe fn start() -> (
         components::gpio_component_helper!(
             RPGpioPin,
             // Used for serial communication. Comment them in if you don't use serial.
+            // QSPI_RAM_CS
             // 0 => peripherals.pins.get_pin(RPGpio::GPIO0),
-            // 1 => peripherals.pins.get_pin(RPGpio::GPIO1),
-            // 2 => peripherals.pins.get_pin(RPGpio::GPIO2),
-            // 3 => peripherals.pins.get_pin(RPGpio::GPIO3),
-            // Used for i2c. Comment them in if you don't use i2c.
-            // 4 => peripherals.pins.get_pin(RPGpio::GPIO4),
-            // 5 => peripherals.pins.get_pin(RPGpio::GPIO5),
-            // 6 => peripherals.pins.get_pin(RPGpio::GPIO6),
+            // Analog input?
+             1 => peripherals.pins.get_pin(RPGpio::GPIO1),
+            // GPIO 
+             2 => peripherals.pins.get_pin(RPGpio::GPIO2),
+            // GPIO 
+             3 => peripherals.pins.get_pin(RPGpio::GPIO3),
+            // ESP 32 Serial UART 1 RX
+             4 => peripherals.pins.get_pin(RPGpio::GPIO4),
+            // ESP 32 Serial UART 1 TX
+             5 => peripherals.pins.get_pin(RPGpio::GPIO5),
+            // GPIO
+             6 => peripherals.pins.get_pin(RPGpio::GPIO6),
             // LED Pin 2350
-             7 => peripherals.pins.get_pin(RPGpio::GPIO7),
-            // 8 => peripherals.pins.get_pin(RPGpio::GPIO8),
-            // 9 => peripherals.pins.get_pin(RPGpio::GPIO9),
-            // 10 => peripherals.pins.get_pin(RPGpio::GPIO10),
-           // 11 => peripherals.pins.get_pin(RPGpio::GPIO11),
+            // 7 => peripherals.pins.get_pin(RPGpio::GPIO7),
+             // ESP32 MISO SPI1
+             8 => peripherals.pins.get_pin(RPGpio::GPIO8),
+            // ESP32 CS SPI1 
+             9 => peripherals.pins.get_pin(RPGpio::GPIO9),
+            // ESP32 SCK SPI1
+             10 => peripherals.pins.get_pin(RPGpio::GPIO10),
+            // ESP32 MOSI SPI1
+            11 => peripherals.pins.get_pin(RPGpio::GPIO11),
             // Used for serial communication. Comment them in if you don't use serial.
-            // Challenger card
+            // Challenger card UART 0 TX
             12 => peripherals.pins.get_pin(RPGpio::GPIO12),
+            // Challenger card UART 0 RX
             13 => peripherals.pins.get_pin(RPGpio::GPIO13),
+            // ESP 32 Bootsel
            // 14 => peripherals.pins.get_pin(RPGpio::GPIO14),
+           // ESP 32 Reset
            // 15 => peripherals.pins.get_pin(RPGpio::GPIO15),
-           // 16 => peripherals.pins.get_pin(RPGpio::GPIO16),
-           // 17 => peripherals.pins.get_pin(RPGpio::GPIO17),
-           // 18 => peripherals.pins.get_pin(RPGpio::GPIO18),
-           // 19 => peripherals.pins.get_pin(RPGpio::GPIO19),
-           // 20 => peripherals.pins.get_pin(RPGpio::GPIO20),
-           //  21 => peripherals.pins.get_pin(RPGpio::GPIO21),
-          //  22 => peripherals.pins.get_pin(RPGpio::GPIO22),
+           // SDI
+            16 => peripherals.pins.get_pin(RPGpio::GPIO16),
+           // SS
+            17 => peripherals.pins.get_pin(RPGpio::GPIO17),
+           // SCK
+            18 => peripherals.pins.get_pin(RPGpio::GPIO18),
+           // SDO
+            19 => peripherals.pins.get_pin(RPGpio::GPIO19),
+            // Used for i2c. Comment them in if you don't use i2c.
+           // I2C0 SDA
+            20 => peripherals.pins.get_pin(RPGpio::GPIO20),
+           // I2C SCL
+             21 => peripherals.pins.get_pin(RPGpio::GPIO21),
+           // ESP 32 HS
+            22 => peripherals.pins.get_pin(RPGpio::GPIO22),
+          // GPIO Debug 0
           //  23 => peripherals.pins.get_pin(RPGpio::GPIO23),
+          // GPIO  Debug 1 
           //  24 => peripherals.pins.get_pin(RPGpio::GPIO24),
-            // LED pin
+           // GPIO  Debug 2
             // 25 => peripherals.pins.get_pin(RPGpio::GPIO25),
 
             // Uncomment to use these as GPIO pins instead of ADC pins
+            // ADC 0
             // 26 => peripherals.pins.get_pin(RPGpio::GPIO26),
+            // ADC 1
             // 27 => peripherals.pins.get_pin(RPGpio::GPIO27),
+            // ADC 2
             // 28 => peripherals.pins.get_pin(RPGpio::GPIO28),
+            // ADC 3
             // 29 => peripherals.pins.get_pin(RPGpio::GPIO29)
         ),
     )
@@ -554,8 +585,8 @@ pub unsafe fn start() -> (
     .finalize(components::process_console_component_static!(RPTimer));
     let _ = process_console.start();
 
-    let sda_pin = peripherals.pins.get_pin(RPGpio::GPIO4);
-    let scl_pin = peripherals.pins.get_pin(RPGpio::GPIO5);
+    let sda_pin = peripherals.pins.get_pin(RPGpio::GPIO20);
+    let scl_pin = peripherals.pins.get_pin(RPGpio::GPIO21);
 
     sda_pin.set_function(GpioFunction::I2C);
     scl_pin.set_function(GpioFunction::I2C);
@@ -589,7 +620,7 @@ pub unsafe fn start() -> (
     let scheduler = components::sched::round_robin::RoundRobinComponent::new(&*addr_of!(PROCESSES))
         .finalize(components::round_robin_component_static!(NUM_PROCS));
 
-    let raspberry_pi_pico = RaspberryPiPico2 {
+    let raspberry_pi_pico = Challenger_wifi_ble {
         ipc: kernel::ipc::IPC::new(
             board_kernel,
             kernel::ipc::DRIVER_NUM,
