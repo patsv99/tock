@@ -10,6 +10,7 @@
 use enum_primitive::cast::FromPrimitive;
 use enum_primitive::enum_from_primitive;
 use kernel::hil;
+use kernel::hil::gpio;
 use kernel::utilities::cells::OptionalCell;
 use kernel::utilities::registers::interfaces::{ReadWriteable, Readable, Writeable};
 use kernel::utilities::registers::{register_bitfields, register_structs, ReadOnly, ReadWrite};
@@ -1523,6 +1524,8 @@ impl hil::gpio::Input for RPGpioPin<'_> {
         value != 0
     }
 }
+
+
 
 pub struct SIO {
     registers: StaticRef<SIORegisters>,

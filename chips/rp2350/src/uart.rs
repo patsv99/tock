@@ -483,6 +483,7 @@ impl<'a> Uart<'a> {
         self.registers.uartdr.write(UARTDR::DATA.val(data as u32));
     }
     #[inline(never)]
+    /// Process UART interrupt
     pub fn handle_interrupt(&self) {
         if self.registers.uartimsc.is_set(UARTIMSC::TXIM) {
             if self.registers.uartfr.is_set(UARTFR::TXFE) {
