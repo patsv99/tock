@@ -16,6 +16,7 @@ use crate::interrupts;
 use crate::pio::Pio;
 use crate::pwm;
 use crate::resets::Resets;
+use crate::ticks::Ticks;
 // use crate::rtc;
 use crate::spi;
 use crate::sysinfo;
@@ -44,7 +45,7 @@ pub struct Rp2350<'a, I: InterruptService + 'a> {
 impl<'a, I: InterruptService> Rp2350<'a, I> {
     pub unsafe fn new(interrupt_service: &'a I, sio: &'a SIO) -> Self {
         Self {
-            mpu: cortexm33::mpu::MPU::new(),
+            mpu: cortexm33::mpu::MPU::new_ns(),
             userspace_kernel_boundary: cortexm33::syscall::SysCall::new(),
             interrupt_service,
             sio,
@@ -57,7 +58,7 @@ impl<'a, I: InterruptService> Rp2350<'a, I> {
 impl<I: InterruptService> Chip for Rp2350<'_, I> {
     type MPU = cortexm33::mpu::MPU;
     type UserspaceKernelBoundary = cortexm33::syscall::SysCall;
-#[inline(never)]
+    #[inline(never)]
     fn service_pending_interrupts(&self) {
         unsafe {
             let mask = match self.sio.get_processor() {
@@ -121,6 +122,7 @@ impl<I: InterruptService> Chip for Rp2350<'_, I> {
 
 pub struct Rp2350DefaultPeripherals<'a> {
     pub adc: adc::Adc<'a>,
+    pub spi0: spi::Spi<'a>,
     pub clocks: Clocks,
     pub i2c0: i2c::I2c<'a, 'a>,
     pub pins: RPPins<'a>,
@@ -129,15 +131,14 @@ pub struct Rp2350DefaultPeripherals<'a> {
     pub pwm: pwm::Pwm<'a>,
     pub resets: Resets,
     pub sio: SIO,
-    pub spi0: spi::Spi<'a>,
-    pub sysinfo: sysinfo::SysInfo,
-    pub timer: RPTimer<'a>,
+    pub ticks: Ticks,
+    pub timer0: RPTimer<'a>,
+    pub timer1: RPTimer<'a>,
     pub uart0: Uart<'a>,
     pub uart1: Uart<'a>,
     pub usb: usb::UsbCtrl<'a>,
     pub watchdog: Watchdog<'a>,
     pub xosc: Xosc,
-    //    pub rtc: rtc::Rtc<'a>,
 }
 
 impl Rp2350DefaultPeripherals<'_> {
@@ -147,21 +148,21 @@ impl Rp2350DefaultPeripherals<'_> {
             adc: adc::Adc::new(),
             clocks: Clocks::new(),
             i2c0: i2c::I2c::new_i2c0(),
+            spi0: spi::Spi::new_spi0(),
             pins: RPPins::new(),
             pio0: Pio::new_pio0(),
             pio1: Pio::new_pio1(),
             pwm: pwm::Pwm::new(),
             resets: Resets::new(),
             sio: SIO::new(),
-            spi0: spi::Spi::new_spi0(),
-            sysinfo: sysinfo::SysInfo::new(),
-            timer: RPTimer::new(),
+            ticks: Ticks::new(),
+            timer0: RPTimer::new_timer0(),
+            timer1: RPTimer::new_timer1(),
             uart0: Uart::new_uart0(),
             uart1: Uart::new_uart1(),
             usb: usb::UsbCtrl::new(),
             watchdog: Watchdog::new(),
             xosc: Xosc::new(),
-            //            rtc: rtc::Rtc::new(),
         }
     }
 
@@ -170,12 +171,11 @@ impl Rp2350DefaultPeripherals<'_> {
         self.watchdog.resolve_dependencies(&self.resets);
         self.spi0.set_clocks(&self.clocks);
         self.uart0.set_clocks(&self.clocks);
+        self.ticks.set_timer0_generator();
+        self.ticks.set_timer1_generator();
+        self.i2c0.resolve_dependencies(&self.clocks, &self.resets);
         kernel::deferred_call::DeferredCallClient::register(&self.uart0);
         kernel::deferred_call::DeferredCallClient::register(&self.uart1);
-        //        kernel::deferred_call::DeferredCallClient::register(&self.rtc);
-        self.i2c0.resolve_dependencies(&self.clocks, &self.resets);
-        self.usb.set_gpio(self.pins.get_pin(RPGpio::GPIO15));
-        //        self.rtc.set_clocks(&self.clocks);
     }
 }
 impl InterruptService for Rp2350DefaultPeripherals<'_> {
@@ -188,9 +188,14 @@ impl InterruptService for Rp2350DefaultPeripherals<'_> {
                 true
             }
             interrupts::TIMER0_IRQ_0 => {
-                self.timer.handle_interrupt();
+                self.timer0.handle_interrupt();
                 true
             }
+            interrupts::TIMER1_IRQ_0 => {
+                self.timer1.handle_interrupt();
+                true
+            }
+
             interrupts::PROC0_IRQ_CTI => {
                 self.sio.handle_proc_interrupt(Processor::Processor0);
                 true
@@ -237,6 +242,7 @@ impl InterruptService for Rp2350DefaultPeripherals<'_> {
                 true
             }
             interrupts::SIO_IRQ_FIFO => {
+
                 self.sio.handle_fifo_interrupt();
                 true
             }

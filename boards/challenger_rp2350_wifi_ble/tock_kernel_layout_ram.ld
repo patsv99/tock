@@ -43,6 +43,26 @@ PAGE_SIZE = DEFINED(PAGE_SIZE) ? PAGE_SIZE : 512;
 
 SECTIONS
 {
+    .vectors : 
+    {
+
+    /* STATIC ELEMENTS FOR TOCK KERNEL */
+        /* Place vector table at the beginning of ROM.
+         *
+         * The first 16 entries in the ARM vector table are defined by ARM and
+         * are common among all ARM chips. The remaining entries are
+         * chip-specific, which Tock defines in a separate .irqs section
+         *
+         * http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0553a/BABIFJFG.html
+         */
+         
+        *(.vectors)
+    } > ram 
+    .irqs : 
+    {
+        *(.irqs)
+    } > ram
+
    .stack (NOLOAD) :
     {
         /* Kernel stack.
@@ -70,23 +90,16 @@ SECTIONS
     } > ram
 
 
-    /* STATIC ELEMENTS FOR TOCK KERNEL */
     .text :
     {
+        . = ALIGN (256);
+
+
         . = ALIGN(4);
         _textstart = .;         /* Symbol expected by some MS build toolchains */
         _stext = .;         /* First of standard s,e (start/end) pair */
+        KEEP (*(.flash_bootloader));
 
-        /* Place vector table at the beginning of ROM.
-         *
-         * The first 16 entries in the ARM vector table are defined by ARM and
-         * are common among all ARM chips. The remaining entries are
-         * chip-specific, which Tock defines in a separate .irqs section
-         *
-         * http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0553a/BABIFJFG.html
-         */
-        KEEP(*(.vectors .vectors.*))
-        KEEP(*(.irqs))
 
         /* RISC-V
          * There is no vector table in RISCV, so .vectors and .irqs will be
@@ -172,6 +185,9 @@ SECTIONS
         KEEP (*crtend.o(.dtors))
         /* End constructor/destructor */
     } > ram
+
+
+
 
 
     /* ARM Exception support

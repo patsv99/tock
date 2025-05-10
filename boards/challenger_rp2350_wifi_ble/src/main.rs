@@ -16,11 +16,12 @@ use core::ptr::{addr_of, addr_of_mut};
 
 use capsules_core::i2c_master::I2CMasterDriver;
 use capsules_core::virtualizers::virtual_alarm::VirtualMuxAlarm;
-use components::date_time_component_static;
+use components::{date_time_component_static, debug_writer_no_mux_component_static};
 use components::gpio::GpioComponent;
 use components::led::LedsComponent;
 use enum_primitive::cast::FromPrimitive;
 use kernel::component::Component;
+use kernel::debug::DebugWriter;
 use kernel::{debug, debug_verbose};
 use kernel::hil::gpio::{Configure, FloatingState};
 use kernel::hil::i2c::I2CMaster;
@@ -249,15 +250,12 @@ fn init_clocks(peripherals: &Rp2350DefaultPeripherals) {
     peripherals
         .clocks
         .configure_usb(UsbAuxiliaryClockSource::PllSys, 48000000, 48000000);
-    let mut v;
-    v = peripherals.clocks.measure_frequency_setup(rp2350::clocks::FCClockSource::Usb);
 
         // pico-sdk: CLK ADC = PLL USB (48MHZ) / 1 = 48MHz
     peripherals
         .clocks
         .configure_adc(AdcAuxiliaryClockSource::PllUsb, 48000000, 48000000);
 
-        v = peripherals.clocks.measure_frequency_setup(rp2350::clocks::FCClockSource::Adc);
     
 /* 
     // pico-sdk: CLK RTC = PLL USB (48MHz) / 1024 = 46875Hz
@@ -272,11 +270,6 @@ fn init_clocks(peripherals: &Rp2350DefaultPeripherals) {
         .clocks
         .configure_peripheral(PeripheralAuxiliaryClockSource::System, 150000000);
     
-    v = peripherals.clocks.measure_frequency_setup(rp2350::clocks::FCClockSource::Sys);
-
-    v = peripherals.clocks.measure_frequency_setup(rp2350::clocks::FCClockSource::Peri);
-
-
 }
 
 /// This is in a separate, inline(never) function so that its stack frame is
@@ -353,7 +346,7 @@ pub unsafe fn start() -> (
         create_capability!(capabilities::ProcessManagementCapability);
     let memory_allocation_capability = create_capability!(capabilities::MemoryAllocationCapability);
 
-    let mux_alarm = components::alarm::AlarmMuxComponent::new(&peripherals.timer)
+    let mux_alarm = components::alarm::AlarmMuxComponent::new(&peripherals.timer0)
         .finalize(components::alarm_mux_component_static!(RPTimer));
 
     let alarm = components::alarm::AlarmDriverComponent::new(
@@ -372,7 +365,7 @@ pub unsafe fn start() -> (
             "00000000000000000", // Serial number
         ]
     );
-
+/* 
     let cdc = components::cdc::CdcAcmComponent::new(
         &peripherals.usb,
         //capsules_extra::usb::cdc::MAX_CTRL_PACKET_SIZE_RP2350,
@@ -387,10 +380,10 @@ pub unsafe fn start() -> (
         rp2350::usb::UsbCtrl,
         rp2350::timer::RPTimer
     ));
-
+*/
     // UART
     // Create a shared UART channel for kernel debug.
-    let uart_mux = components::console::UartMuxComponent::new(cdc, 115200)
+    let uart_mux = components::console::UartMuxComponent::new(&peripherals.uart0, 115200)
         .finalize(components::uart_mux_component_static!());
 
     // Uncomment this to use UART as an output
@@ -404,7 +397,7 @@ pub unsafe fn start() -> (
     let console = components::console::ConsoleComponent::new(
         board_kernel,
         capsules_core::console::DRIVER_NUM,
-        uart_mux2,
+        uart_mux,
     )
     .finalize(components::console_component_static!());
     // Create the debugger object that handles calls to `debug!()`.
@@ -422,9 +415,10 @@ pub unsafe fn start() -> (
 
         debug!("Hello debug here");
         debug_verbose!("Another debug");
-    cdc.enable();
+/* 
+        cdc.enable();
     cdc.attach();
-
+*/
 
     debug!("Hej");
     
@@ -522,6 +516,7 @@ pub unsafe fn start() -> (
     .finalize(components::temperature_rp2350_adc_component_static!(
         rp2350::adc::Adc
     ));
+
 
     // RTC DATE TIME
 /* 
@@ -641,16 +636,6 @@ pub unsafe fn start() -> (
         systick: cortexm33::systick::SysTick::new_with_calibration(150_000_000),
     };
 
-    let platform_type = match peripherals.sysinfo.get_platform() {
-        sysinfo::Platform::Asic => "ASIC",
-        sysinfo::Platform::Fpga => "FPGA",
-    };
-
-    debug!(
-        "RP2350 Revision {} {}",
-        peripherals.sysinfo.get_revision(),
-        platform_type
-    );
 
     debug!("Initialization complete. Enter main loop");
 
@@ -701,5 +686,6 @@ pub unsafe fn main() {
     let (board_kernel, platform, chip) = start();
     debug!("Kalle hoppsan hej och hå detta är en lång mening som man måste fylla fifo för att det skall bli bra!!!\n");
     // panic!("Flush!!!");
+    
     board_kernel.kernel_loop(&platform, chip, Some(&platform.ipc), &main_loop_capability);
 }

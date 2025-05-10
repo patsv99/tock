@@ -39,7 +39,9 @@ SECTIONS {
 */
 
 /* RP2350 boots from first ram address jump to start */
+/*
 SECTIONS {
+ 
   .text  : ALIGN(4)
     {
         KEEP (*(.flash_bootloader));
@@ -47,7 +49,7 @@ SECTIONS {
     } > ram
 }
 
-
+*/
 
 INCLUDE tock_kernel_layout_ram.ld
 

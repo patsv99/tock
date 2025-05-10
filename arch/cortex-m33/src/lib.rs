@@ -11,7 +11,7 @@
 use core::fmt::Write;
 
 pub mod mpu {
-    pub type MPU = cortexm::mpu::MPU<8, 32>;
+    pub type MPU = cortexm::mpu::MPU<16, 32>; // Cortex-M7 MPU has 16 regions
 }
 
 pub use cortexm::dwt;

@@ -14,9 +14,6 @@ extern "C" {
     static _sstack: u8;
 }
 
-
-
-
 #[cfg(any(doc, all(target_arch = "arm", target_os = "none")))]
 extern "C" {
     /// ARMv8-M systick handler function.

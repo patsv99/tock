@@ -13,7 +13,7 @@ use kernel::utilities::registers::{
 use kernel::utilities::StaticRef;
 use kernel::ErrorCode;
 
-use crate::interrupts::TIMER0_IRQ_0;
+use crate::interrupts::{TIMER0_IRQ_0, TIMER1_IRQ_0};
 
 register_structs! {
     /// Controls time and alarms\n
@@ -27,94 +27,91 @@ register_structs! {
     /// When an alarm fires, the corresponding alarm_irq is set and alarm_runnin
     /// To clear the interrupt write a 1 to the corresponding alarm_irq
     TimerRegisters {
-        /// Write to bits 63:32 of time\n
-        /// always write timelw before timehw
-        (0x000 => timehw: WriteOnly<u32, TIMEHW::Register>),
-        /// Write to bits 31:0 of time\n
-        /// writes do not get copied to time until timehw is written
-        (0x004 => timelw: WriteOnly<u32, TIMELW::Register>),
-        /// Read from bits 63:32 of time\n
-        /// always read timelr before timehr
-        (0x008 => timehr: ReadOnly<u32, TIMEHR::Register>),
+        /// Write to bits 63:32 of time always write timelw before timehw
+        (0x000 => timehw: ReadWrite<u32>),
+        /// Write to bits 31:0 of time writes do not get copied to time until timehw is writ
+        (0x004 => timelw: ReadWrite<u32>),
+        /// Read from bits 63:32 of time always read timelr before timehr
+        (0x008 => timehr: ReadWrite<u32>),
         /// Read from bits 31:0 of time
-        (0x00C => timelr: ReadOnly<u32, TIMELR::Register>),
-        /// Arm alarm 0, and configure the time it will fire.\n
-        /// Once armed, the alarm fires when TIMER_ALARM0 == TIMELR.\n
-        /// The alarm will disarm itself once it fires, and can\n
-        /// be disarmed early using the ARMED status register.
-        (0x010 => alarm0: ReadWrite<u32, ALARM0::Register>),
-        /// Arm alarm 1, and configure the time it will fire.\n
-        /// Once armed, the alarm fires when TIMER_ALARM1 == TIMELR.\n
-        /// The alarm will disarm itself once it fires, and can\n
-        /// be disarmed early using the ARMED status register.
-        (0x014 => alarm1: ReadWrite<u32, ALARM1::Register>),
-        /// Arm alarm 2, and configure the time it will fire.\n
-        /// Once armed, the alarm fires when TIMER_ALARM2 == TIMELR.\n
-        /// The alarm will disarm itself once it fires, and can\n
-        /// be disarmed early using the ARMED status register.
-        (0x018 => alarm2: ReadWrite<u32, ALARM2::Register>),
-        /// Arm alarm 3, and configure the time it will fire.\n
-        /// Once armed, the alarm fires when TIMER_ALARM3 == TIMELR.\n
-        /// The alarm will disarm itself once it fires, and can\n
-        /// be disarmed early using the ARMED status register.
-        (0x01C => alarm3: ReadWrite<u32, ALARM3::Register>),
-        /// Indicates the armed/disarmed status of each alarm.\n
-        /// A write to the corresponding ALARMx register arms the alarm.\n
-        /// Alarms automatically disarm upon firing, but writing ones here\n
-        /// will disarm immediately without waiting to fire.
+        (0x00C => timelr: ReadWrite<u32>),
+        /// Arm alarm 0, and configure the time it will fire. Once armed, the alarm fires wh
+        (0x010 => alarm0: ReadWrite<u32>),
+        /// Arm alarm 1, and configure the time it will fire. Once armed, the alarm fires wh
+        (0x014 => alarm1: ReadWrite<u32>),
+        /// Arm alarm 2, and configure the time it will fire. Once armed, the alarm fires wh
+        (0x018 => alarm2: ReadWrite<u32>),
+        /// Arm alarm 3, and configure the time it will fire. Once armed, the alarm fires wh
+        (0x01C => alarm3: ReadWrite<u32>),
+        /// Indicates the armed/disarmed status of each alarm. A write to the corresponding
         (0x020 => armed: ReadWrite<u32>),
         /// Raw read from bits 63:32 of time (no side effects)
-        (0x024 => timerawh: ReadOnly<u32, TIMERAWH::Register>),
+        (0x024 => timerawh: ReadWrite<u32>),
         /// Raw read from bits 31:0 of time (no side effects)
-        (0x028 => timerawl: ReadOnly<u32, TIMERAWL::Register>),
+        (0x028 => timerawl: ReadWrite<u32>),
         /// Set bits high to enable pause when the corresponding debug ports are active
         (0x02C => dbgpause: ReadWrite<u32, DBGPAUSE::Register>),
         /// Set high to pause the timer
         (0x030 => pause: ReadWrite<u32>),
+        /// Set locked bit to disable write access to timer Once set, cannot be cleared (wit
+        (0x034 => locked: ReadWrite<u32>),
+        /// Selects the source for the timer. Defaults to the normal tick configured in the
+        (0x038 => source: ReadWrite<u32>),
         /// Raw Interrupts
-        (0x034 => intr: ReadWrite<u32, INTR::Register>),
+        (0x03C => intr: ReadWrite<u32, INTR::Register>),
         /// Interrupt Enable
-        (0x038 => inte: ReadWrite<u32, INTE::Register>),
+        (0x040 => inte: ReadWrite<u32, INTE::Register>),
         /// Interrupt Force
-        (0x03C => intf: ReadWrite<u32, INTF::Register>),
+        (0x044 => intf: ReadWrite<u32, INTF::Register>),
         /// Interrupt status after masking & forcing
-        (0x040 => ints: ReadWrite<u32, INTS::Register>),
-        (0x044 => @END),
+        (0x048 => ints: ReadWrite<u32, INTS::Register>),
+        (0x04C => @END),
     }
 }
 register_bitfields![u32,
 TIMEHW [
-    VALUE OFFSET (0) NUMBITS (32) []
+
+    TIMEHW OFFSET(0) NUMBITS(32) []
 ],
 TIMELW [
-    VALUE OFFSET (0) NUMBITS (32) []
+
+    TIMELW OFFSET(0) NUMBITS(32) []
 ],
 TIMEHR [
-    VALUE OFFSET (0) NUMBITS (32) []
+
+    TIMEHR OFFSET(0) NUMBITS(32) []
 ],
 TIMELR [
-    VALUE OFFSET (0) NUMBITS (32) []
+
+    TIMELR OFFSET(0) NUMBITS(32) []
 ],
 ALARM0 [
-    VALUE OFFSET (0) NUMBITS (32) []
+
+    ALARM0 OFFSET(0) NUMBITS(32) []
 ],
 ALARM1 [
-    VALUE OFFSET (0) NUMBITS (32) []
+
+    ALARM1 OFFSET(0) NUMBITS(32) []
 ],
 ALARM2 [
-    VALUE OFFSET (0) NUMBITS (32) []
+
+    ALARM2 OFFSET(0) NUMBITS(32) []
 ],
 ALARM3 [
-    VALUE OFFSET (0) NUMBITS (32) []
+
+    ALARM3 OFFSET(0) NUMBITS(32) []
 ],
 ARMED [
+
     ARMED OFFSET(0) NUMBITS(4) []
 ],
 TIMERAWH [
-    VALUE OFFSET (0) NUMBITS (32) []
+
+    TIMERAWH OFFSET(0) NUMBITS(32) []
 ],
 TIMERAWL [
-    VALUE OFFSET (0) NUMBITS (32) []
+
+    TIMERAWL OFFSET(0) NUMBITS(32) []
 ],
 DBGPAUSE [
     /// Pause when processor 1 is in debug mode
@@ -125,6 +122,17 @@ DBGPAUSE [
 PAUSE [
 
     PAUSE OFFSET(0) NUMBITS(1) []
+],
+LOCKED [
+
+    LOCKED OFFSET(0) NUMBITS(1) []
+],
+SOURCE [
+
+    CLK_SYS OFFSET(0) NUMBITS(1) [
+
+        TICK = 0
+    ]
 ],
 INTR [
 
@@ -167,20 +175,38 @@ INTS [
     ALARM_0 OFFSET(0) NUMBITS(1) []
 ]
 ];
-const TIMER_BASE: StaticRef<TimerRegisters> =
-    unsafe { StaticRef::new(0x40054000 as *const TimerRegisters) };
+
+const TIMER0_BASE: StaticRef<TimerRegisters> =
+    unsafe { StaticRef::new(0x400B0000 as *const TimerRegisters) };
+
+const TIMER1_BASE: StaticRef<TimerRegisters> =
+    unsafe { StaticRef::new(0x400B8000 as *const TimerRegisters) };
+
+enum Timer {
+    Timer0,
+    Timer1,
+}
 
 pub struct RPTimer<'a> {
     registers: StaticRef<TimerRegisters>,
     client: OptionalCell<&'a dyn hil::time::AlarmClient>,
+    timer: Timer,
 }
 
 impl<'a> RPTimer<'a> {
-    #[inline(never)]
-    pub const fn new() -> RPTimer<'a> {
+    pub const fn new_timer0() -> RPTimer<'a> {
         RPTimer {
-            registers: TIMER_BASE,
+            registers: TIMER0_BASE,
             client: OptionalCell::empty(),
+            timer: Timer::Timer0,
+        }
+    }
+
+    pub const fn new_timer1() -> RPTimer<'a> {
+        RPTimer {
+            registers: TIMER1_BASE,
+            client: OptionalCell::empty(),
+            timer: Timer::Timer1,
         }
     }
 
@@ -202,7 +228,10 @@ impl<'a> RPTimer<'a> {
         // next kernel tasks are processed.
         unsafe {
             atomic(|| {
-                let n = cortexm33::nvic::Nvic::new(TIMER0_IRQ_0);
+                let n = match self.timer {
+                    Timer::Timer0 => cortexm33::nvic::Nvic::new(TIMER0_IRQ_0),
+                    Timer::Timer1 => cortexm33::nvic::Nvic::new(TIMER1_IRQ_0),
+                };
                 n.enable();
             })
         }
@@ -213,7 +242,10 @@ impl<'a> RPTimer<'a> {
         // the interrupt firing, it seems that RP2040 requires manual NVIC
         // disabling of the interrupt.
         unsafe {
-            cortexm33::nvic::Nvic::new(TIMER0_IRQ_0).disable();
+            match self.timer {
+                Timer::Timer0 => cortexm33::nvic::Nvic::new(TIMER0_IRQ_0).disable(),
+                Timer::Timer1 => cortexm33::nvic::Nvic::new(TIMER1_IRQ_0).disable(),
+            }
         }
     }
 
@@ -262,7 +294,10 @@ impl<'a> Alarm<'a> for RPTimer<'a> {
         unsafe {
             atomic(|| {
                 // Clear pending interrupts
-                cortexm33::nvic::Nvic::new(TIMER0_IRQ_0).clear_pending();
+                match self.timer {
+                    Timer::Timer0 => cortexm33::nvic::Nvic::new(TIMER0_IRQ_0).clear_pending(),
+                    Timer::Timer1 => cortexm33::nvic::Nvic::new(TIMER1_IRQ_0).clear_pending(),
+                }
             });
         }
         self.disable_interrupt();

@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright Tock Contributors 2022.
 
-//! Tock kernel for the Raspberry Pi Pico.
+//! Tock kernel for the Raspberry Pi Pico 2.
 //!
-//! It is based on RP2350SoC SoC (Cortex M0+).
+//! It is based on RP2350SoC SoC (Cortex M33).
 
 #![no_std]
 // Disable this attribute when documenting, as a workaround for
@@ -14,35 +14,28 @@
 
 use core::ptr::{addr_of, addr_of_mut};
 
-use capsules_core::i2c_master::I2CMasterDriver;
 use capsules_core::virtualizers::virtual_alarm::VirtualMuxAlarm;
-use components::date_time_component_static;
 use components::gpio::GpioComponent;
 use components::led::LedsComponent;
 use enum_primitive::cast::FromPrimitive;
 use kernel::component::Component;
-use kernel::{debug, debug_gpio, debug_verbose};
-use kernel::hil::gpio::{Configure, FloatingState};
-use kernel::hil::i2c::I2CMaster;
 use kernel::hil::led::LedHigh;
-use kernel::hil::usb::Client;
 use kernel::platform::{KernelResources, SyscallDriverLookup};
 use kernel::scheduler::round_robin::RoundRobinSched;
 use kernel::syscall::SyscallDriver;
 use kernel::{capabilities, create_capability, static_init, Kernel};
 
-use rp2350::adc::{Adc, Channel};
 use rp2350::chip::{Rp2350, Rp2350DefaultPeripherals};
 use rp2350::clocks::{
-    AdcAuxiliaryClockSource, PeripheralAuxiliaryClockSource, PllClock,
-    ReferenceAuxiliaryClockSource, ReferenceClockSource, 
-    SystemAuxiliaryClockSource, SystemClockSource, UsbAuxiliaryClockSource,
+    AdcAuxiliaryClockSource, HstxAuxiliaryClockSource, PeripheralAuxiliaryClockSource, PllClock,
+    ReferenceAuxiliaryClockSource, ReferenceClockSource, SystemAuxiliaryClockSource,
+    SystemClockSource, UsbAuxiliaryClockSource,
 };
 use rp2350::gpio::{GpioFunction, RPGpio, RPGpioPin};
-use rp2350::i2c::I2c;
 use rp2350::resets::Peripheral;
-use rp2350::sysinfo;
 use rp2350::timer::RPTimer;
+#[allow(unused)]
+use rp2350::{xosc, BASE_VECTORS};
 
 mod io;
 
@@ -51,12 +44,16 @@ mod flash_bootloader;
 /// Allocate memory for the stack
 #[no_mangle]
 #[link_section = ".stack_buffer"]
-pub static mut STACK_MEMORY: [u8; 0x1500] = [0; 0x1500];
+pub static mut STACK_MEMORY: [u8; 0x3000] = [0; 0x3000];
 
-// Manually setting the boot header section that contains the FCB header
+// // Manually setting the boot header section that contains the FCB header
 #[used]
 #[link_section = ".flash_bootloader"]
 static FLASH_BOOTLOADER: [u8; 256] = flash_bootloader::FLASH_BOOTLOADER;
+
+#[used]
+#[link_section = ".metadata_block"]
+static METADATA_BLOCK: [u8; 28] = flash_bootloader::METADATA_BLOCK;
 
 // State for loading and holding applications.
 // How should the kernel respond when a process faults.
@@ -69,36 +66,22 @@ const NUM_PROCS: usize = 4;
 static mut PROCESSES: [Option<&'static dyn kernel::process::Process>; NUM_PROCS] =
     [None; NUM_PROCS];
 
-static mut CHIP: Option<&'static Rp2350<Rp2350DefaultPeripherals>> = None;
+static mut CHIP: Option<&'static Rp2350<Rp2350DefaultPeripherals<'static>>> = None;
 static mut PROCESS_PRINTER: Option<&'static capsules_system::process_printer::ProcessPrinterText> =
     None;
-
-type TemperatureRp2350Sensor = components::temperature_rp2350::TemperatureRp2350ComponentType<
-    capsules_core::virtualizers::virtual_adc::AdcDevice<'static, rp2350::adc::Adc<'static>>,
->;
-type TemperatureDriver = components::temperature::TemperatureComponentType<TemperatureRp2350Sensor>;
 
 /// Supported drivers by the platform
 pub struct RaspberryPiPico2 {
     ipc: kernel::ipc::IPC<{ NUM_PROCS as u8 }>,
     console: &'static capsules_core::console::Console<'static>,
+    scheduler: &'static RoundRobinSched<'static>,
+    systick: cortexm33::systick::SysTick,
     alarm: &'static capsules_core::alarm::AlarmDriver<
         'static,
         VirtualMuxAlarm<'static, rp2350::timer::RPTimer<'static>>,
     >,
     gpio: &'static capsules_core::gpio::GPIO<'static, RPGpioPin<'static>>,
     led: &'static capsules_core::led::LedDriver<'static, LedHigh<'static, RPGpioPin<'static>>, 1>,
-
-    adc: &'static capsules_core::adc::AdcVirtualized<'static>,
-    temperature: &'static TemperatureDriver,
-    i2c: &'static capsules_core::i2c_master::I2CMasterDriver<'static, I2c<'static, 'static>>,
-
-    // TODO Date time
-    /* 
-    date_time:
-        &'static capsules_extra::date_time::DateTimeCapsule<'static, rp2350::rtc::Rtc<'static>>, */
-    scheduler: &'static RoundRobinSched<'static>,
-    systick: cortexm33::systick::SysTick,
 }
 
 impl SyscallDriverLookup for RaspberryPiPico2 {
@@ -112,14 +95,6 @@ impl SyscallDriverLookup for RaspberryPiPico2 {
             capsules_core::gpio::DRIVER_NUM => f(Some(self.gpio)),
             capsules_core::led::DRIVER_NUM => f(Some(self.led)),
             kernel::ipc::DRIVER_NUM => f(Some(&self.ipc)),
-            /* 
-            capsules_core::adc::DRIVER_NUM => f(Some(self.adc)),
-            capsules_extra::temperature::DRIVER_NUM => f(Some(self.temperature)),
-            capsules_core::i2c_master::DRIVER_NUM => f(Some(self.i2c)),
-            */
-            /* 
-            capsules_extra::date_time::DRIVER_NUM => f(Some(self.date_time)),
-            */
             _ => f(None),
         }
     }
@@ -161,7 +136,7 @@ impl KernelResources<Rp2350<'static, Rp2350DefaultPeripherals<'static>>> for Ras
 extern "C" {
     /// Entry point used for debugger
     ///
-    /// When loaded using gdb, the Raspberry Pi Pico is not reset
+    /// When loaded using gdb, the Raspberry Pi Pico 2 is not reset
     /// by default. Without this function, gdb sets the PC to the
     /// beginning of the flash. This is not correct, as the RP2350
     /// has a more complex boot process.
@@ -177,30 +152,21 @@ core::arch::global_asm!(
     "
     .section .jump_to_bootloader, \"ax\"
     .global jump_to_bootloader
-    .extern initialize_ram_jump_to_main
     .thumb_func
   jump_to_bootloader:
-BKPT #102  
     movs r0, #0
-#    ldr r1, =(0xe0000000 + 0x0000ed08)
-#    str r0, [r1]
-#    ldmia r0!, {{r1, r2}}
-#    msr msp, r1
-  ldr r0,=  _estack
-   msr MSP,r0
-   ldr r0,= _sstack
-   msr MSPLIM,r0
-
-
-bl initialize_ram_jump_to_main
+    ldr r1, =(0xe0000000 + 0x0000ed08)
+    str r0, [r1]
+    ldmia r0!, {{r1, r2}}
+    msr msp, r1
+    bx r2
     "
 );
 
-#[inline(never)]
 fn init_clocks(peripherals: &Rp2350DefaultPeripherals) {
-    // Start tick in watchdog
-    peripherals.watchdog.start_tick(12);
-
+    // // Start tick in watchdog
+    // peripherals.watchdog.start_tick(12);
+    //
     // Disable the Resus clock
     peripherals.clocks.disable_resus();
 
@@ -218,14 +184,16 @@ fn init_clocks(peripherals: &Rp2350DefaultPeripherals) {
         .resets
         .unreset(&[Peripheral::PllSys, Peripheral::PllUsb], true);
 
-    // Default PLL configuration RP2350:
-    // REF FBDIV VCO POSTDIV
-    // PLL SYS: 12 / 1 = 12MHz * 125 = 1500MHz / 5 / 2 = 150MHz
-    // PLL USB: 12 / 1 = 12MHz * 100 = 1200MHz / 5 / 5 = 48MHz
+    // Configure PLLs (from Pico SDK)
+    //                   REF     FBDIV VCO            POSTDIV
+    // PLL SYS: 12 / 1 = 12MHz * 125 = 1500MHZ / 6 / 2 = 125MHz
+    // PLL USB: 12 / 1 = 12MHz * 40  = 480 MHz / 5 / 2 =  48MHz
+
+    // It seems that the external oscillator is clocked at 12 MHz
 
     peripherals
         .clocks
-        .pll_init(PllClock::Sys, 12, 1, 1500 * 1000000, 5, 2);
+        .pll_init(PllClock::Sys, 12, 1, 1500 * 1000000, 6, 2);
     peripherals
         .clocks
         .pll_init(PllClock::Usb, 12, 1, 480 * 1000000, 5, 2);
@@ -237,64 +205,46 @@ fn init_clocks(peripherals: &Rp2350DefaultPeripherals) {
         12000000,
         12000000,
     );
-
-    // pico-sdk: CLK SYS = PLL SYS (150MHz) / 1 = 150MHz
+    // pico-sdk: CLK SYS = PLL SYS (125MHz) / 1 = 125MHz
     peripherals.clocks.configure_system(
         SystemClockSource::Auxiliary,
         SystemAuxiliaryClockSource::PllSys,
-        150000000,
-        150000000,
+        125000000,
+        125000000,
     );
+
     // pico-sdk: CLK USB = PLL USB (48MHz) / 1 = 48MHz
     peripherals
         .clocks
         .configure_usb(UsbAuxiliaryClockSource::PllSys, 48000000, 48000000);
-    let mut v;
-    v = peripherals.clocks.measure_frequency_setup(rp2350::clocks::FCClockSource::Usb);
-
-        // pico-sdk: CLK ADC = PLL USB (48MHZ) / 1 = 48MHz
+    // pico-sdk: CLK ADC = PLL USB (48MHZ) / 1 = 48MHz
     peripherals
         .clocks
         .configure_adc(AdcAuxiliaryClockSource::PllUsb, 48000000, 48000000);
-
-        v = peripherals.clocks.measure_frequency_setup(rp2350::clocks::FCClockSource::Adc);
-    
-/* 
-    // pico-sdk: CLK RTC = PLL USB (48MHz) / 1024 = 46875Hz
+    // pico-sdk: CLK HSTX = PLL USB (48MHz) / 1024 = 46875Hz
     peripherals
         .clocks
-        .configure_rtc(RtcAuxiliaryClockSource::PllSys, 48000000, 46875);
-    */
+        .configure_hstx(HstxAuxiliaryClockSource::PllSys, 48000000, 46875);
     // pico-sdk:
     // CLK PERI = clk_sys. Used as reference clock for Peripherals. No dividers so just select and enable
     // Normally choose clk_sys or clk_usb
     peripherals
         .clocks
-        .configure_peripheral(PeripheralAuxiliaryClockSource::System, 150000000);
-    
-    v = peripherals.clocks.measure_frequency_setup(rp2350::clocks::FCClockSource::Sys);
-
-    v = peripherals.clocks.measure_frequency_setup(rp2350::clocks::FCClockSource::Peri);
-
-
+        .configure_peripheral(PeripheralAuxiliaryClockSource::System, 125000000);
 }
 
-/// This is in a separate, inline(never) function so that its stack frame is
-/// removed when this function returns. Otherwise, the stack space used for
-/// these static_inits is wasted.
-#[inline(never)]
-pub unsafe fn start() -> (
-    &'static kernel::Kernel,
-    RaspberryPiPico2,
-    &'static rp2350::chip::Rp2350<'static, Rp2350DefaultPeripherals<'static>>,
-) {
-    // Loads relocations and clears BSS
+unsafe fn get_peripherals() -> &'static mut Rp2350DefaultPeripherals<'static> {
+    static_init!(Rp2350DefaultPeripherals, Rp2350DefaultPeripherals::new())
+}
+
+/// Main function called after RAM initialized.
+#[no_mangle]
+pub unsafe fn main() {
     rp2350::init();
 
-    let peripherals = static_init!(Rp2350DefaultPeripherals, Rp2350DefaultPeripherals::new());
+    let peripherals = get_peripherals();
     peripherals.resolve_dependencies();
 
-    // Reset all peripherals except QSPI (we might be booting from Flash), PLL USB and PLL SYS
     peripherals.resets.reset_all_except(&[
         Peripheral::IOQSpi,
         Peripheral::PadsQSpi,
@@ -302,37 +252,19 @@ pub unsafe fn start() -> (
         Peripheral::PllSys,
     ]);
 
-    // Unreset all the peripherals that do not require clock setup as they run using the sys_clk or ref_clk
-    // Wait for the peripherals to reset
-    peripherals.resets.unreset_all_except(
-        &[
-            Peripheral::Adc,
-           // Peripheral::Rtc,
-           Peripheral::Hstx,
-            Peripheral::Spi0,
-            Peripheral::Spi1,
-            Peripheral::Uart0,
-            Peripheral::Uart1,
-            Peripheral::UsbCtrl,
-        ],
-        true,
-    );
-
     init_clocks(peripherals);
 
-    // Unreset all peripherals
-    peripherals.resets.unreset_all_except(&[Peripheral::Hstx], true); // Not setup hstx
+    peripherals.resets.unreset_all_except(&[], true);
 
     // Set the UART used for panic
     (*addr_of_mut!(io::WRITER)).set_uart(&peripherals.uart0);
 
-    //set RX and TX pins in UART mode
-    let gpio_tx = peripherals.pins.get_pin(RPGpio::GPIO12);
-    let gpio_rx = peripherals.pins.get_pin(RPGpio::GPIO13);
+    let gpio_tx = peripherals.pins.get_pin(RPGpio::GPIO0);
+    let gpio_rx = peripherals.pins.get_pin(RPGpio::GPIO1);
     gpio_rx.set_function(GpioFunction::UART);
     gpio_tx.set_function(GpioFunction::UART);
 
-    // Disable IE for pads 26-29 (the Pico SDK runtime does this, not sure why)
+    //// Disable IE for pads 26-29 (the Pico SDK runtime does this, not sure why)
     for pin in 26..30 {
         peripherals
             .pins
@@ -353,7 +285,7 @@ pub unsafe fn start() -> (
         create_capability!(capabilities::ProcessManagementCapability);
     let memory_allocation_capability = create_capability!(capabilities::MemoryAllocationCapability);
 
-    let mux_alarm = components::alarm::AlarmMuxComponent::new(&peripherals.timer)
+    let mux_alarm = components::alarm::AlarmMuxComponent::new(&peripherals.timer0)
         .finalize(components::alarm_mux_component_static!(RPTimer));
 
     let alarm = components::alarm::AlarmDriverComponent::new(
@@ -363,42 +295,8 @@ pub unsafe fn start() -> (
     )
     .finalize(components::alarm_component_static!(RPTimer));
 
-    // CDC
-    let strings = static_init!(
-        [&str; 3],
-        [
-            "Raspberry Pi",      // Manufacturer
-            "Pico2 - TockOS",     // Product
-            "00000000000000000", // Serial number
-        ]
-    );
-
-    let cdc = components::cdc::CdcAcmComponent::new(
-        &peripherals.usb,
-        //capsules_extra::usb::cdc::MAX_CTRL_PACKET_SIZE_RP2350,
-        64,
-        peripherals.sysinfo.get_manufacturer_rp2350() as u16,
-        peripherals.sysinfo.get_part() as u16,
-        strings,
-        mux_alarm,
-        None,
-    )
-    .finalize(components::cdc_acm_component_static!(
-        rp2350::usb::UsbCtrl,
-        rp2350::timer::RPTimer
-    ));
-
-    // UART
-    // Create a shared UART channel for kernel debug.
-    let uart_mux = components::console::UartMuxComponent::new(cdc, 115200)
+    let uart_mux = components::console::UartMuxComponent::new(&peripherals.uart0, 115200)
         .finalize(components::uart_mux_component_static!());
-
-    // Uncomment this to use UART as an output
-     let uart_mux2 = components::console::UartMuxComponent::new(
-         &peripherals.uart0,
-         115200,
-     )
-     .finalize(components::uart_mux_component_static!());
 
     // Setup the console.
     let console = components::console::ConsoleComponent::new(
@@ -407,23 +305,6 @@ pub unsafe fn start() -> (
         uart_mux,
     )
     .finalize(components::console_component_static!());
-    // Create the debugger object that handles calls to `debug!()`.
-    components::debug_writer::DebugWriterComponent::new(uart_mux2)
-        .finalize(components::debug_writer_component_static!());
-    let gpio_debug_pin = peripherals.pins.get_pin(RPGpio::GPIO7);
-    kernel::debug::assign_gpios(Some(gpio_debug_pin),None,None);
-
-    // Setup interrupts for uart so we can debug printouts 
-    cortexm33::nvic::Nvic::new(rp2350::interrupts::UART0_IRQ).enable();
-
-        debug!("Hello debug here");
-        debug_verbose!("Another debug");
-    cdc.enable();
-    cdc.attach();
-
-
-    debug!("Hej");
-    
 
     let gpio = GpioComponent::new(
         board_kernel,
@@ -433,112 +314,48 @@ pub unsafe fn start() -> (
             // Used for serial communication. Comment them in if you don't use serial.
             // 0 => peripherals.pins.get_pin(RPGpio::GPIO0),
             // 1 => peripherals.pins.get_pin(RPGpio::GPIO1),
-            // 2 => peripherals.pins.get_pin(RPGpio::GPIO2),
-            // 3 => peripherals.pins.get_pin(RPGpio::GPIO3),
-            // Used for i2c. Comment them in if you don't use i2c.
-            // 4 => peripherals.pins.get_pin(RPGpio::GPIO4),
-            // 5 => peripherals.pins.get_pin(RPGpio::GPIO5),
-            // 6 => peripherals.pins.get_pin(RPGpio::GPIO6),
-            // LED Pin 2350
-             7 => peripherals.pins.get_pin(RPGpio::GPIO7),
-            // 8 => peripherals.pins.get_pin(RPGpio::GPIO8),
-            // 9 => peripherals.pins.get_pin(RPGpio::GPIO9),
-            // 10 => peripherals.pins.get_pin(RPGpio::GPIO10),
-           // 11 => peripherals.pins.get_pin(RPGpio::GPIO11),
-            // Used for serial communication. Comment them in if you don't use serial.
-            // Challenger card
+            2 => peripherals.pins.get_pin(RPGpio::GPIO2),
+            3 => peripherals.pins.get_pin(RPGpio::GPIO3),
+            4 => peripherals.pins.get_pin(RPGpio::GPIO4),
+            5 => peripherals.pins.get_pin(RPGpio::GPIO5),
+            6 => peripherals.pins.get_pin(RPGpio::GPIO6),
+            7 => peripherals.pins.get_pin(RPGpio::GPIO7),
+            8 => peripherals.pins.get_pin(RPGpio::GPIO8),
+            9 => peripherals.pins.get_pin(RPGpio::GPIO9),
+            10 => peripherals.pins.get_pin(RPGpio::GPIO10),
+            11 => peripherals.pins.get_pin(RPGpio::GPIO11),
             12 => peripherals.pins.get_pin(RPGpio::GPIO12),
             13 => peripherals.pins.get_pin(RPGpio::GPIO13),
-           // 14 => peripherals.pins.get_pin(RPGpio::GPIO14),
-           // 15 => peripherals.pins.get_pin(RPGpio::GPIO15),
-           // 16 => peripherals.pins.get_pin(RPGpio::GPIO16),
-           // 17 => peripherals.pins.get_pin(RPGpio::GPIO17),
-           // 18 => peripherals.pins.get_pin(RPGpio::GPIO18),
-           // 19 => peripherals.pins.get_pin(RPGpio::GPIO19),
-           // 20 => peripherals.pins.get_pin(RPGpio::GPIO20),
-           //  21 => peripherals.pins.get_pin(RPGpio::GPIO21),
-          //  22 => peripherals.pins.get_pin(RPGpio::GPIO22),
-          //  23 => peripherals.pins.get_pin(RPGpio::GPIO23),
-          //  24 => peripherals.pins.get_pin(RPGpio::GPIO24),
+            14 => peripherals.pins.get_pin(RPGpio::GPIO14),
+            15 => peripherals.pins.get_pin(RPGpio::GPIO15),
+            16 => peripherals.pins.get_pin(RPGpio::GPIO16),
+            17 => peripherals.pins.get_pin(RPGpio::GPIO17),
+            18 => peripherals.pins.get_pin(RPGpio::GPIO18),
+            19 => peripherals.pins.get_pin(RPGpio::GPIO19),
+            20 => peripherals.pins.get_pin(RPGpio::GPIO20),
+            21 => peripherals.pins.get_pin(RPGpio::GPIO21),
+            22 => peripherals.pins.get_pin(RPGpio::GPIO22),
+            23 => peripherals.pins.get_pin(RPGpio::GPIO23),
+            24 => peripherals.pins.get_pin(RPGpio::GPIO24),
             // LED pin
             // 25 => peripherals.pins.get_pin(RPGpio::GPIO25),
-
-            // Uncomment to use these as GPIO pins instead of ADC pins
-            // 26 => peripherals.pins.get_pin(RPGpio::GPIO26),
-            // 27 => peripherals.pins.get_pin(RPGpio::GPIO27),
-            // 28 => peripherals.pins.get_pin(RPGpio::GPIO28),
-            // 29 => peripherals.pins.get_pin(RPGpio::GPIO29)
+            26 => peripherals.pins.get_pin(RPGpio::GPIO26),
+            27 => peripherals.pins.get_pin(RPGpio::GPIO27),
+            28 => peripherals.pins.get_pin(RPGpio::GPIO28),
+            29 => peripherals.pins.get_pin(RPGpio::GPIO29)
         ),
     )
     .finalize(components::gpio_component_static!(RPGpioPin<'static>));
 
     let led = LedsComponent::new().finalize(components::led_component_static!(
         LedHigh<'static, RPGpioPin<'static>>,
-        LedHigh::new(peripherals.pins.get_pin(RPGpio::GPIO7))
+        LedHigh::new(peripherals.pins.get_pin(RPGpio::GPIO25))
     ));
 
-    peripherals.adc.init();
+    // Create the debugger object that handles calls to `debug!()`.
+    components::debug_writer::DebugWriterComponent::new(uart_mux)
+        .finalize(components::debug_writer_component_static!());
 
-    let adc_mux = components::adc::AdcMuxComponent::new(&peripherals.adc)
-        .finalize(components::adc_mux_component_static!(Adc));
-
-    let temp_sensor = components::temperature_rp2350::TemperatureRp2350Component::new(
-        adc_mux,
-        Channel::Channel4,
-        1.721,
-        0.706,
-    )
-    .finalize(components::temperature_rp2350_adc_component_static!(
-        rp2350::adc::Adc
-    ));
-
-    // RTC DATE TIME
-/* 
-    match peripherals.rtc.rtc_init() {
-        Ok(()) => {}
-        Err(e) => {
-            debug!("error starting rtc {:?}", e)
-        }
-    }
-    */
-/* 
-    let date_time = components::date_time::DateTimeComponent::new(
-        board_kernel,
-        capsules_extra::date_time::DRIVER_NUM,
-        &peripherals.rtc,
-    )
-    .finalize(date_time_component_static!(rp2350::rtc::Rtc<'static>));
-*/
-
-    let temp = components::temperature::TemperatureComponent::new(
-        board_kernel,
-        capsules_extra::temperature::DRIVER_NUM,
-        temp_sensor,
-    )
-    .finalize(components::temperature_component_static!(
-        TemperatureRp2350Sensor
-    ));
-
-    let adc_channel_0 = components::adc::AdcComponent::new(adc_mux, Channel::Channel0)
-        .finalize(components::adc_component_static!(Adc));
-
-    let adc_channel_1 = components::adc::AdcComponent::new(adc_mux, Channel::Channel1)
-        .finalize(components::adc_component_static!(Adc));
-
-    let adc_channel_2 = components::adc::AdcComponent::new(adc_mux, Channel::Channel2)
-        .finalize(components::adc_component_static!(Adc));
-
-    let adc_channel_3 = components::adc::AdcComponent::new(adc_mux, Channel::Channel3)
-        .finalize(components::adc_component_static!(Adc));
-
-    let adc_syscall =
-        components::adc::AdcVirtualComponent::new(board_kernel, capsules_core::adc::DRIVER_NUM)
-            .finalize(components::adc_syscall_component_helper!(
-                adc_channel_0,
-                adc_channel_1,
-                adc_channel_2,
-                adc_channel_3,
-            ));
     // PROCESS CONSOLE
     let process_printer = components::process_printer::ProcessPrinterTextComponent::new()
         .finalize(components::process_printer_text_component_static!());
@@ -554,38 +371,6 @@ pub unsafe fn start() -> (
     .finalize(components::process_console_component_static!(RPTimer));
     let _ = process_console.start();
 
-    let sda_pin = peripherals.pins.get_pin(RPGpio::GPIO4);
-    let scl_pin = peripherals.pins.get_pin(RPGpio::GPIO5);
-
-    sda_pin.set_function(GpioFunction::I2C);
-    scl_pin.set_function(GpioFunction::I2C);
-
-    sda_pin.set_floating_state(FloatingState::PullUp);
-    scl_pin.set_floating_state(FloatingState::PullUp);
-
-    let i2c_master_buffer = static_init!(
-        [u8; capsules_core::i2c_master::BUFFER_LENGTH],
-        [0; capsules_core::i2c_master::BUFFER_LENGTH]
-    );
-
-    let i2c0 = &peripherals.i2c0;
-    let i2c = static_init!(
-        I2CMasterDriver<I2c<'static, 'static>>,
-        I2CMasterDriver::new(
-            i2c0,
-            i2c_master_buffer,
-            board_kernel.create_grant(
-                capsules_core::i2c_master::DRIVER_NUM,
-                &memory_allocation_capability
-            ),
-        )
-    );
-    i2c0.init(10 * 1000);
-    i2c0.set_master_client(i2c);
-    
-
-    // Interrupts
-
     let scheduler = components::sched::round_robin::RoundRobinComponent::new(&*addr_of!(PROCESSES))
         .finalize(components::round_robin_component_static!(NUM_PROCS));
 
@@ -595,33 +380,19 @@ pub unsafe fn start() -> (
             kernel::ipc::DRIVER_NUM,
             &memory_allocation_capability,
         ),
+        console,
         alarm,
         gpio,
         led,
-        console, 
-        adc: adc_syscall,
-        temperature: temp,
-        i2c,
-        
-        /* 
-        date_time,
-*/
         scheduler,
-        systick: cortexm33::systick::SysTick::new_with_calibration(150_000_000),
+        systick: cortexm33::systick::SysTick::new_with_calibration(125_000_000),
     };
 
-    let platform_type = match peripherals.sysinfo.get_platform() {
-        sysinfo::Platform::Asic => "ASIC",
-        sysinfo::Platform::Fpga => "FPGA",
-    };
+    let tick_gen = peripherals.ticks.is_timer0_on();
 
-    debug!(
-        "RP2350 Revision {} {}",
-        peripherals.sysinfo.get_revision(),
-        platform_type
-    );
+    kernel::debug!("Timer 0 tick generator is on? {tick_gen}");
 
-    debug!("Initialization complete. Enter main loop");
+    kernel::debug!("Initialization complete. Enter main loop");
 
     // These symbols are defined in the linker script.
     extern "C" {
@@ -651,24 +422,16 @@ pub unsafe fn start() -> (
         &process_management_capability,
     )
     .unwrap_or_else(|err| {
-        debug!("Error loading processes!");
-        debug!("{:?}", err);
+        kernel::debug!("Error loading processes!");
+        kernel::debug!("{:?}", err);
     });
 
-    (board_kernel, raspberry_pi_pico, chip)
-}
-
-
-
-/// Main function called after RAM initialized.
-#[no_mangle]
-#[inline(never)]
-
-pub unsafe fn main() {
     let main_loop_capability = create_capability!(capabilities::MainLoopCapability);
 
-    let (board_kernel, platform, chip) = start();
-    debug!("Kalle hoppsan hej och hå detta är en lång mening som man måste fylla fifo för att det skall bli bra!!!\n");
-    // panic!("Flush!!!");
-    board_kernel.kernel_loop(&platform, chip, Some(&platform.ipc), &main_loop_capability);
+    board_kernel.kernel_loop(
+        &raspberry_pi_pico,
+        chip,
+        Some(&raspberry_pi_pico.ipc),
+        &main_loop_capability,
+    );
 }

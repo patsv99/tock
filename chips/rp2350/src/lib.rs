@@ -1,8 +1,10 @@
 // Licensed under the Apache License, Version 2.0 or the MIT License.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright Tock Contributors 2022.
-#![recursion_limit = "256"]
 #![no_std]
+// GPIO has many register definitions in `register_structs()!`
+// and requires a deeper recursion limit than the default to fully expand.
+#![recursion_limit = "256"]
 
 pub mod adc;
 pub mod chip;
@@ -64,63 +66,14 @@ pub static BASE_VECTORS: [unsafe extern "C" fn(); 16] = [
 ];
 
 // RP2350 has total of xx interrupts, but the SDK declares 32 as 26 - 32 might be manually handled
-#[cfg_attr(all(target_arch = "arm", target_os = "none"), link_section = ".irqs")]
 // used Ensures that the symbol is kept until the final binary
+#[cfg_attr(
+    all(target_arch = "arm", target_os = "none"),
+    link_section = ".vectors"
+)]
 #[cfg_attr(all(target_arch = "arm", target_os = "none"), used)]
-pub static IRQS: [unsafe extern "C" fn(); 52] = [
-    CortexM33::GENERIC_ISR, // TIMER0 (0)  // TODO These are wrong sources look in interrupts.rs for correct
-    CortexM33::GENERIC_ISR, // TIMER1 (1)
-    CortexM33::GENERIC_ISR, // TIMER2 (2)
-    CortexM33::GENERIC_ISR, // TIMER3 (3)
-    CortexM33::GENERIC_ISR, // PWM WRAP (4)
-    CortexM33::GENERIC_ISR, // USB (5)
-    CortexM33::GENERIC_ISR, // XIP (6)
-    CortexM33::GENERIC_ISR, // PIO0 INT0  (7)
-    CortexM33::GENERIC_ISR, // PIO0 INT1 (8)
-    CortexM33::GENERIC_ISR, // PIO1 INT0 (9)
-    CortexM33::GENERIC_ISR, // PIO1 INT1 (10)
-    CortexM33::GENERIC_ISR, // DMA0 (11)
-    CortexM33::GENERIC_ISR, // DMA1 (12)
-    CortexM33::GENERIC_ISR, // IO BANK 0 (13)
-    CortexM33::GENERIC_ISR, // IO QSPI (14)
-    CortexM33::GENERIC_ISR, // SIO PROC 0 (15)
-    CortexM33::GENERIC_ISR, // SIO PROC 1 (16)
-    CortexM33::GENERIC_ISR, // CLOCKS (17)
-    CortexM33::GENERIC_ISR, // SPI 0 (18)
-    CortexM33::GENERIC_ISR, // SPI 1 (19)
-    CortexM33::GENERIC_ISR, // UART 0 (20)
-    CortexM33::GENERIC_ISR, // UART 1 (21)
-    CortexM33::GENERIC_ISR, // ADC FIFO (22)
-    CortexM33::GENERIC_ISR, // I2C 0 (23)
-    CortexM33::GENERIC_ISR, // I2C 1 (24)
-    CortexM33::GENERIC_ISR, // ISR (25)
-    CortexM33::GENERIC_ISR, // ISR (26)
-    CortexM33::GENERIC_ISR, // ISR (27)
-    CortexM33::GENERIC_ISR, // ISR (28)
-    CortexM33::GENERIC_ISR, // ISR (29)
-    CortexM33::GENERIC_ISR, // ISR (30)
-    CortexM33::GENERIC_ISR, // ISR (31)
-    CortexM33::GENERIC_ISR, // ISR (32)
-    CortexM33::GENERIC_ISR, // ISR (33)
-    CortexM33::GENERIC_ISR, // ISR (34)
-    CortexM33::GENERIC_ISR, // ISR (35)
-    CortexM33::GENERIC_ISR, // ISR (36)
-    CortexM33::GENERIC_ISR, // ISR (37)
-    CortexM33::GENERIC_ISR, // ISR (38)
-    CortexM33::GENERIC_ISR, // ISR (39)
-    CortexM33::GENERIC_ISR, // ISR (40)
-    CortexM33::GENERIC_ISR, // ISR (41)
-    CortexM33::GENERIC_ISR, // ISR (42)
-    CortexM33::GENERIC_ISR, // ISR (43)
-    CortexM33::GENERIC_ISR, // ISR (44)
-    CortexM33::GENERIC_ISR, // ISR (45)
-    unhandled_interrupt,    // ISR (46)
-    unhandled_interrupt,    // ISR (47)
-    unhandled_interrupt,    // ISR (48)
-    unhandled_interrupt,    // ISR (49)
-    unhandled_interrupt,    // ISR (50)
-    unhandled_interrupt,    // ISR (51)
-];
+pub static IRQS: [unsafe extern "C" fn(); 52] = [CortexM33::GENERIC_ISR; 52];
+
 
 extern "C" {
     static mut _szero: usize;

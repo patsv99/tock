@@ -2,16 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 # Copyright Tock Contributors 2022.
 
-# Makefile for building the tock kernel for the Pico Explorer Base board.
+# Makefile for building the tock kernel for the Raspberry Pi Pico 2 board.
 
 include ../Makefile.common
 
 OPENOCD=openocd
-OPENOCD_INTERFACE=swd
+OPENOCD_INTERFACE=picoprobe
 OPENOCD_OPTIONS=-f openocd-$(OPENOCD_INTERFACE).cfg
 
-BOOTSEL_FOLDER?=/media/$(USER)/RP2350
-#BOOTSEL_FOLDER?=/media/pico
+BOOTSEL_FOLDER?=/run/media/$(USER)/RP2350
 
 KERNEL=$(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).elf
 KERNEL_WITH_APP=$(TOCK_ROOT_DIRECTORY)/target/$(TARGET)/release/$(PLATFORM)-app.elf
@@ -23,13 +22,12 @@ install: flash
 
 .PHONY: flash-openocd
 flash-openocd: $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).elf
-	$(OPENOCD) $(OPENOCD_OPTIONS) -c "program $<; verify_image $<;  reset; shutdown;"
+	$(OPENOCD) $(OPENOCD_OPTIONS) -c "adapter speed 5000" -c "program $<; verify_image $<;  reset; shutdown;"
 
 .PHONY: flash
 flash: $(KERNEL)
-#	elf2uf2-rs -v $< $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).uf2
-	picotool uf2 convert --verbose $< -t elf $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).uf2 -t uf2
-	@if [ -d $(BOOTSEL_FOLDER) ]; then sudo cp $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).uf2 "$(BOOTSEL_FOLDER)"; else echo; echo Please edit the BOOTSEL_FOLDER variable to point to you Raspberry Pi Pico Flash Drive Folder; echo You can download and flash $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).uf2; fi
+	picotool uf2 convert $< $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).uf2
+	@if [ -d $(BOOTSEL_FOLDER) ]; then cp $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).uf2 "$(BOOTSEL_FOLDER)"; else echo; echo Please edit the BOOTSEL_FOLDER variable to point to you Raspberry Pi Pico 2 Flash Drive Folder; echo You can download and flash $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).uf2; fi
 
 .PHONY: program
 program: $(KERNEL)
@@ -38,5 +36,5 @@ ifeq ($(APP),)
 endif
 	arm-none-eabi-objcopy --set-section-flags .apps=LOAD,ALLOC $(KERNEL) $(KERNEL_WITH_APP)
 	arm-none-eabi-objcopy --update-section .apps=$(APP) $(KERNEL_WITH_APP)
-	elf2uf2-rs $(KERNEL_WITH_APP) $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM)-app.uf2
-	@if [ -d $(BOOTSEL_FOLDER) ]; then cp $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM)-app.uf2 "$(BOOTSEL_FOLDER)"; else echo; echo Please edit the BOOTSEL_FOLDER variable to point to you Raspberry Pi Pico Flash Drive Folder; echo You can download and flash $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM)-app.uf2; fi
+	picotool uf2 convert $(KERNEL_WITH_APP) $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM)-app.uf2
+	@if [ -d $(BOOTSEL_FOLDER) ]; then cp $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM)-app.uf2 "$(BOOTSEL_FOLDER)"; else echo; echo Please edit the BOOTSEL_FOLDER variable to point to you Raspberry Pi Pico 2 Flash Drive Folder; echo You can download and flash $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM)-app.uf2; fi
