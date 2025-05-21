@@ -89,7 +89,6 @@ SECTIONS
          _estack = .;
     } > ram
 
-
     .text :
     {
         . = ALIGN (256);
@@ -98,7 +97,8 @@ SECTIONS
         . = ALIGN(4);
         _textstart = .;         /* Symbol expected by some MS build toolchains */
         _stext = .;         /* First of standard s,e (start/end) pair */
-        KEEP (*(.flash_bootloader));
+        *(.jump_to_bootloader);
+        *(.flash_bootloader);
 
 
         /* RISC-V

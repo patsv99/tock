@@ -2,22 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "nRF52-DK",
-            "type": "gdb",
-            "request": "attach",
-            "executable": "${workspaceRoot}/boards/nrf52dk/target/thumbv7em-none-eabi/release/nrf52dk",
-            "target": "localhost:2331",
-            "remote": true,
-            "cwd": "${workspaceRoot}",
-            "gdbpath": "/home/patsv/Downloads/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-gdb",
-
-"autorun": [
-                "monitor reset",
-                "monitor speed auto",
-                "b initialize_ram_jump_to_main"
-            ]
-        },
-        {
             "name": "MSP432 Cortex Debug",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -72,7 +56,7 @@
             "device": "RP2350",
             "configFiles": [
                 "interface/cmsis-dap.cfg",
-                "target/rp2350_eris.cfg"
+                "target/rp2350.cfg"
             ],
             
             "searchDir": [
@@ -95,7 +79,7 @@
         {
             "name": "Debug with OpenOCD Challenger",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/target/thumbv8m.main-none-eabi/release/challenger_rp2350_wifi_ble.elf",
+            "executable": "${workspaceRoot}/target/thumbv8m.main-none-eabi/debug/challenger_rp2350_wifi_ble.elf",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -127,13 +111,18 @@
                 "set substitute-path  /rustc/827a0d638dabc9a22c56f9c37a557568f86ac76c/ /home/patsv/.rustup/toolchains/nightly-2025-02-19-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/",
                 "dir ~/.cargo/registry/src/",
                 "dir ~/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust",
-                "file /home/patsv/src/tock/target/thumbv8m.main-none-eabi/release/challenger_rp2350_wifi_ble.elf",
-                "load /home/patsv/src/tock/target/thumbv8m.main-none-eabi/release/challenger_rp2350_wifi_ble.elf",
+                "dir ~/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust",
+
+                "file /home/patsv/src/tock/target/thumbv8m.main-none-eabi/debug/challenger_rp2350_wifi_ble.elf",
+                "load /home/patsv/src/tock/target/thumbv8m.main-none-eabi/debug/challenger_rp2350_wifi_ble.elf",
+
+//                "file /home/patsv/src/libtock-rs/target/challenger_rp2350_wifi_ble/thumbv8m.main-none-eabi/release/examples/blink",
+//               "load /home/patsv/src/libtock-rs/target/challenger_rp2350_wifi_ble/thumbv8m.main-none-eabi/release/examples/blink",
             ],
             "device": "RP2350",
             "configFiles": [
                 "interface/cmsis-dap.cfg",
-                "target/rp2350_eris.cfg"
+                "target/rp2350.cfg"
             ],
             
             "searchDir": [
@@ -149,7 +138,7 @@
     
             // Give restart the same functionality as runToEntryPoint - main
             "postRestartCommands": [
-                "load /home/patsv/src/tock/target/thumbv8m.main-none-eabi/release/challenger_rp2350_wifi_ble.elf",
+                "load /home/patsv/src/tock/target/thumbv8m.main-none-eabi/debug/challenger_rp2350_wifi_ble.elf",
                 "monitor init",
             ]
         },

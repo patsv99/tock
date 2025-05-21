@@ -89,7 +89,6 @@ pub struct Challenger_wifi_ble {
     >,
     gpio: &'static capsules_core::gpio::GPIO<'static, RPGpioPin<'static>>,
     led: &'static capsules_core::led::LedDriver<'static, LedHigh<'static, RPGpioPin<'static>>, 1>,
-
     adc: &'static capsules_core::adc::AdcVirtualized<'static>,
     temperature: &'static TemperatureDriver,
     i2c: &'static capsules_core::i2c_master::I2CMasterDriver<'static, I2c<'static, 'static>>,
@@ -113,11 +112,10 @@ impl SyscallDriverLookup for Challenger_wifi_ble {
             capsules_core::gpio::DRIVER_NUM => f(Some(self.gpio)),
             capsules_core::led::DRIVER_NUM => f(Some(self.led)),
             kernel::ipc::DRIVER_NUM => f(Some(&self.ipc)),
-            /* 
             capsules_core::adc::DRIVER_NUM => f(Some(self.adc)),
             capsules_extra::temperature::DRIVER_NUM => f(Some(self.temperature)),
             capsules_core::i2c_master::DRIVER_NUM => f(Some(self.i2c)),
-            */
+            
             /* 
             capsules_extra::date_time::DRIVER_NUM => f(Some(self.date_time)),
             */
@@ -383,9 +381,10 @@ pub unsafe fn start() -> (
 */
     // UART
     // Create a shared UART channel for kernel debug.
-    let uart_mux = components::console::UartMuxComponent::new(&peripherals.uart0, 115200)
+    /* 
+    let uart_mux = components::console::UartMuxComponent::new(cdc, 115200)
         .finalize(components::uart_mux_component_static!());
-
+*/
     // Uncomment this to use UART as an output
      let uart_mux2 = components::console::UartMuxComponent::new(
          &peripherals.uart0,
@@ -397,7 +396,7 @@ pub unsafe fn start() -> (
     let console = components::console::ConsoleComponent::new(
         board_kernel,
         capsules_core::console::DRIVER_NUM,
-        uart_mux,
+        uart_mux2,
     )
     .finalize(components::console_component_static!());
     // Create the debugger object that handles calls to `debug!()`.
@@ -412,16 +411,15 @@ pub unsafe fn start() -> (
 
     // Setup interrupts for uart so we can debug printouts 
     cortexm33::nvic::Nvic::new(rp2350::interrupts::UART0_IRQ).enable();
-
+peripherals.uart0.enable();
         debug!("Hello debug here");
         debug_verbose!("Another debug");
-/* 
-        cdc.enable();
+       
+
+/*
+    cdc.enable();
     cdc.attach();
 */
-
-    debug!("Hej");
-    
 
     let gpio = GpioComponent::new(
         board_kernel,
@@ -572,7 +570,7 @@ pub unsafe fn start() -> (
 
     let process_console = components::process_console::ProcessConsoleComponent::new(
         board_kernel,
-        uart_mux,
+        uart_mux2,
         mux_alarm,
         process_printer,
         Some(cortexm33::support::reset),
@@ -608,9 +606,6 @@ pub unsafe fn start() -> (
     );
     i2c0.init(10 * 1000);
     i2c0.set_master_client(i2c);
-    
-
-    // Interrupts
 
     let scheduler = components::sched::round_robin::RoundRobinComponent::new(&*addr_of!(PROCESSES))
         .finalize(components::round_robin_component_static!(NUM_PROCS));
@@ -624,7 +619,7 @@ pub unsafe fn start() -> (
         alarm,
         gpio,
         led,
-        console, 
+        console,
         adc: adc_syscall,
         temperature: temp,
         i2c,
@@ -636,6 +631,16 @@ pub unsafe fn start() -> (
         systick: cortexm33::systick::SysTick::new_with_calibration(150_000_000),
     };
 
+    let platform_type = match peripherals.sysinfo.get_platform() {
+        sysinfo::Platform::Asic => "ASIC",
+        sysinfo::Platform::Fpga => "FPGA",
+    };
+
+    debug!(
+        "RP2350 Revision {} {}",
+        peripherals.sysinfo.get_revision(),
+        platform_type
+    );
 
     debug!("Initialization complete. Enter main loop");
 
@@ -673,8 +678,6 @@ pub unsafe fn start() -> (
 
     (board_kernel, raspberry_pi_pico, chip)
 }
-
-
 
 /// Main function called after RAM initialized.
 #[no_mangle]

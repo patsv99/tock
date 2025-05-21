@@ -72,8 +72,77 @@ pub static BASE_VECTORS: [unsafe extern "C" fn(); 16] = [
     link_section = ".vectors"
 )]
 #[cfg_attr(all(target_arch = "arm", target_os = "none"), used)]
-pub static IRQS: [unsafe extern "C" fn(); 52] = [CortexM33::GENERIC_ISR; 52];
-
+pub static IRQS: [unsafe extern "C" fn(); 52] = [
+CortexM33::GENERIC_ISR,  // TIMER0_IRQ_0
+CortexM33::GENERIC_ISR,  // TIMER0_IRQ_1
+CortexM33::GENERIC_ISR,  // TIMER0_IRQ_2
+CortexM33::GENERIC_ISR,  // TIMER0_IRQ_3
+CortexM33::GENERIC_ISR,  // TIMER1_IRQ_0
+CortexM33::GENERIC_ISR,  // TIMER1_IRQ_1
+CortexM33::GENERIC_ISR,  // TIMER1_IRQ_2
+CortexM33::GENERIC_ISR,  // TIMER1_IRQ_3
+    
+CortexM33::GENERIC_ISR,  // PWM_IRQ_WRAP_0
+CortexM33::GENERIC_ISR,  // PWM_IRQ_WRAP_1
+    
+CortexM33::GENERIC_ISR,  // DMA_IRQ_0
+CortexM33::GENERIC_ISR,  // DMA_IRQ_1
+CortexM33::GENERIC_ISR,  // DMA_IRQ_2
+CortexM33::GENERIC_ISR,  // DMA_IRQ_3
+    
+CortexM33::GENERIC_ISR,  // USBCTRL_IRQ
+    
+CortexM33::GENERIC_ISR,  // PIO0_IRQ_0
+CortexM33::GENERIC_ISR,  // PIO0_IRQ_1
+CortexM33::GENERIC_ISR,  // PIO1_IRQ_0
+CortexM33::GENERIC_ISR,  // PIO1_IRQ_1
+CortexM33::GENERIC_ISR,  // PIO2_IRQ_0
+CortexM33::GENERIC_ISR,  // PIO2_IRQ_1
+    
+CortexM33::GENERIC_ISR,  // IO_IRQ_BANK0
+CortexM33::GENERIC_ISR,  // IO_IRQ_BANK0_NS
+    
+CortexM33::GENERIC_ISR,  // SIO_IRQ_QSPI
+CortexM33::GENERIC_ISR,  // SIO_IRQ_QSPI_NS
+    
+CortexM33::GENERIC_ISR,  // SIO_IRQ_FIFO
+CortexM33::GENERIC_ISR,  // SIO_IRQ_BELL
+CortexM33::GENERIC_ISR,  // SIO_IRQ_FIFO_NS
+CortexM33::GENERIC_ISR,  // SIO_IRQ_BELL_NS
+CortexM33::GENERIC_ISR,  // SIO_IRQ_MTIMECMP
+    
+CortexM33::GENERIC_ISR,  // CLOCKS_IRQ
+    
+CortexM33::GENERIC_ISR,  // SPI0_IRQ
+CortexM33::GENERIC_ISR,  // SPI1_IRQ
+    
+CortexM33::GENERIC_ISR,  // UART0_IRQ
+CortexM33::GENERIC_ISR,  // UART1_IRQ
+    
+CortexM33::GENERIC_ISR,  // ADC_IRQ_FIFO
+    
+CortexM33::GENERIC_ISR,  // I2C0_IRQ
+CortexM33::GENERIC_ISR,  // I2C1_IRQ
+    
+CortexM33::GENERIC_ISR,  // OTP_IRQ
+    
+CortexM33::GENERIC_ISR,  // TRNG_IRQ
+    
+CortexM33::GENERIC_ISR,  // PROC0_IRQ_CTI
+CortexM33::GENERIC_ISR,  // PROC1_IRQ_CTI
+    
+CortexM33::GENERIC_ISR,  // PLL_SYS_IRQ
+CortexM33::GENERIC_ISR,  // PLL_SYS_USB
+CortexM33::GENERIC_ISR,  // POWMAN_IRQ_POW
+CortexM33::GENERIC_ISR,  // POWMAN_IRQ_TIMER
+CortexM33::GENERIC_ISR,  // 46
+CortexM33::GENERIC_ISR,  // 47
+CortexM33::GENERIC_ISR,  // 48
+CortexM33::GENERIC_ISR,  // 49
+CortexM33::GENERIC_ISR,  // 50
+CortexM33::GENERIC_ISR,  // 51
+];
+    
 
 extern "C" {
     static mut _szero: usize;

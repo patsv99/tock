@@ -11,8 +11,8 @@ MEMORY
   prog (rx) : ORIGIN = 0x2003C000, LENGTH = 1K
   ram (rwx) : ORIGIN = 0x20000000, LENGTH = 240K 
 */
-  prog (rx) : ORIGIN = 0x20060000, LENGTH = 128K
   ram (rwx) : ORIGIN = 0x20000000, LENGTH = 384K 
+  prog (rx) : ORIGIN = 0x20060000, LENGTH = 128K
 
 
   /* boot from Flash */

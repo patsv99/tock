@@ -1556,8 +1556,27 @@ impl SIO {
         }
     }
 
-    pub fn handle_fifo_interrupt(&self) {
+    pub fn handle_fifo_interrupt(&self) {        
         let _st = self.registers.fifo_st.get();
+        let mut _read_fifo:bool = false;
+        let mut _write_fifo:bool = false;
+        // Avoid looping until empty (determinism) 
+        if FIFO_ST::VLD.is_set(_st) {
+            _read_fifo = true;            
+        }
+        if FIFO_ST::RDY.is_set(_st) {
+            _write_fifo = true;            
+        }
+        self.registers.fifo_st.set(_st);
+        
+        if(_read_fifo) {
+            self.registers.fifo_rd.get();
+        }
+
+        if(_write_fifo) {
+           // self.registers.fifo_wr.get();
+        }
+ 
     }
 
     pub fn get_processor(&self) -> Processor {
